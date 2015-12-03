@@ -1,0 +1,10 @@
+Package: bdata
+Title: Boyd data
+Version: 0.4
+Authors@R: "Don Boyd <donboyd5@gmail.com> [aut, cre]"
+Description: Data that I use frequently.
+Depends:
+    R (>= 3.2.2)
+License: GPL-2
+LazyData: TRUE
+RoxygenNote: 5.0.1
