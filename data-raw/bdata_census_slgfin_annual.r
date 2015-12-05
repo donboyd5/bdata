@@ -1,4 +1,4 @@
-# 12/3/2015
+# 12/4/2015
 
 
 #****************************************************************************************************
@@ -137,6 +137,7 @@ for(yr in 2000:2012)  {
 }
 
 # Note that the 2013 data do not appear to be here!!!
+# Randy Moore, Chief of the Census Local Governments Branch, provided it directly to me by email
 
 
 # get the various historical databases (note that I store these elsewhere on my computer)
@@ -151,32 +152,44 @@ download.file(paste0(urlbase, fn), paste0(spec60, fn), mode="wb")
 #                Individual year files ####
 #****************************************************************************************************
 # Work SLOWLY, getting only a few variables at a time
-itemfiles <- character(13)
-for(yr in 2000:2012) {
-  i <- yr - 1999
-  if(yr==2000) itemfiles[i] <- "00statetypepu_1108.TXT" else
-    if(yr==2002) itemfiles[i] <- "2002State_By_type_Summaries24.txt" else
-      itemfiles[i] <- paste0(str_sub(yr, 3, 4), "statetypepu.txt")
-}
-itemfiles
+# itemfiles <- character(13)
+# for(yr in 2000:2013) {
+#   i <- yr - 1999
+#   if(yr==2000) itemfiles[i] <- "00statetypepu_1108.TXT" else
+#     if(yr==2002) itemfiles[i] <- "2002State_By_type_Summaries24.txt" else
+#       itemfiles[i] <- paste0(str_sub(yr, 3, 4), "statetypepu.txt")
+# }
+
+# itemfiles <- c(list.files(d35, pattern="statetypepu"), "2002State_By_type_Summaries24.txt")
+# itemfiles
+fnamedf <- data.frame(fname=c(list.files(d35, pattern="statetypepu"),
+                                           "2002State_By_type_Summaries24.txt")) %>%
+  mutate(year=2000 + ifelse(str_sub(fname, 1, 4)=="2002", 02, as.integer(str_sub(fname, 1, 2)))) %>%
+  arrange(year)
 
 # now read the item files
 # 2002 is a different format than the other years
-f <- function(yr) {
-  fn <- itemfiles[yr - 1999]
-  starts <- c(1, 3, 5, 9)
-  ends <- c(2, 3, 8, 20)
-  if(yr==2002) {
-    starts <- c(1, 3, 15, 19)
-    ends <- c(2, 3, 17, 29)
+
+# 12/4/2015 read_fwf is broken (issue #300); workaround below adds a final junk character column that I drop
+# https://github.com/hadley/readr/issues/300
+year <- 2000
+f <- function(year) {
+  fname <- fnamedf$fname[match(year, fnamedf$year)]
+  print(fname)
+  starts <- c(1, 3, 5, 9, 21)
+  ends <- c(2, 3, 8, 20, 21)
+  if(year==2002) {
+    starts <- c(1, 3, 15, 19, 30)
+    ends <- c(2, 3, 17, 29, 30)
   }
-  df <- read_fwf(paste0(d35, fn), fwf_positions(starts, ends, col_names=c("stcode", "level", "ic", "value")),
-           col_types="cicd")
-  df$year <- yr
+  df <- read_fwf(paste0(d35, fname), fwf_positions(starts, ends, col_names=c("stcode", "level", "ic", "value", "junk")),
+           col_types="cicdc", n_max=-1) %>% select(-junk)
+  df$year <- year
   return(df)
 }
-df <- ldply(2000:2012, f)
+df <- ldply(2000:2013, f)
 ht(df)
+# df %>% filter(year==2000, stcode=="00", level==1, ic=="19A")
 
 # slight cleaning, then save
 df2 <- df %>% mutate(stabbr=stcodes$stabbr[match(stcode, stcodes$stcen)])
@@ -198,9 +211,7 @@ rm(df, df2, df3)
 
 
 #****************************************************************************************************
-#
 #                Get recipe data frame for creating aggregates from item code data ####
-#
 #****************************************************************************************************
 # get recipe data frame
 fn <- "SLGFinAggregationAnalysis(30).xlsx"
@@ -220,9 +231,7 @@ ht(rdfl)
 
 
 #****************************************************************************************************
-#
 #                Create aggregates from recent item code data ####
-#
 #****************************************************************************************************
 df <- readRDS(file=paste0(d35, "finrecent.rds"))
 
@@ -241,9 +250,7 @@ rm(df, df2, df3)
 
 
 #****************************************************************************************************
-#
 #                Get historical database ####
-#
 #****************************************************************************************************
 # Work SLOWLY, getting only a few variables at a time
 
@@ -397,9 +404,7 @@ saveRDS(df2, file=paste0(gfd, "finhist_clean.rds"))
 
 
 #****************************************************************************************************
-#
 #                Get selected aggregates from historical database using my aggnames ####
-#
 #****************************************************************************************************
 dfl <- readRDS(file=paste0(gfd, "finhist_clean.rds"))
 
@@ -435,16 +440,12 @@ finhist <- dfl %>% mutate(aggvaric=recic$aggvar[match(ic, recic$ic)],
 count(finhist, aggvar)
 glimpse(finhist)
 
-# save(revhist, file=paste0(gfd, "revhist.rda"), compress="bzip2") # this is slower and takes more space than rds
-
 saveRDS(finhist, file=paste0(gfd, "finhist_agg.rds"))
 
 
 
 #****************************************************************************************************
-#
 #                Combined file ####
-#
 #****************************************************************************************************
 # levf=factor(level, levels=1:3, labels=c("State-local", "State", "Local")),
 

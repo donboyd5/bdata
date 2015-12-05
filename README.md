@@ -5,7 +5,7 @@ This package contains several data files that I use frequently. I will try to up
 * `recessions`: for each recession, peak (first day of month), trough (first day of month), year (i.e., name), first day of peak quarter, first day of end quarter
 * `sgtax.a`: state government tax revenue, annual - selected US-only data 1902-1940, selected US and states 1942-2014
 * `slgemp`: state and local government employment (state-local, state, local), annual 1979-2013
-* `slgfin`: state and local government finances (state-local, state, local), annual - selected years 1902-2012
+* `slgfin`: state and local government finances (state-local, state, local), annual - selected years 1902-2013
 * `soiall`: Statistics of Income (IRS) data by state, selected variables, annual 2004-2013
 * `spi.a`: state personal income, annual - 1929 to latest
 * `spi.q`: state personal income, quarterly - 1948q1 to latest
