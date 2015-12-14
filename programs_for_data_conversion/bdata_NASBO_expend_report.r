@@ -32,7 +32,11 @@ nasboxrd <- paste0("D:/Dropbox/NASBO/LATEST Data/")
 #****************************************************************************************************
 #                read and save data ####
 #****************************************************************************************************
-df <- read_excel(paste0(nasboxrd, "EXP_DATA 1991-2014.xls"), sheet="EXP_DATA")
+df <- read_excel(paste0(nasboxrd, "NASBO-ExpData-1991-2015.xls"), sheet="EXP_DATA")
+# there are 5 unnecessary columns at the end - verify, then delete
+df[, c(1, (ncol(df)-5):ncol(df))] %>% ht
+df <- df[ , 1:(ncol(df)-5)]
+df[, c(1, ncol(df))]
 df2 <- df %>% mutate(stabbr=stcodes$stabbr[match(STATE, stcodes$stname)]) %>%
   rename(year=YEAR) %>%
   select(-STATE) %>%
@@ -84,10 +88,11 @@ df4 <- df3 %>% separate(variable, c("purpose", "fundtype")) %>%
          fundtype=ifelse(fundtype=="tot", "af", fundtype),
          purposef=factor(purpose, levels=purpdf$purpose, labels=purpdf$purposef),
          fundtypef=factor(fundtype, levels=ftdf$fundtype, labels=ftdf$fundtypef))
-
+glimpse(df4)
 count(df4, purpose, purposef)
 count(df4, fundtype, fundtypef)
 count(df4, stabbr) # includes PR, does not include US
+count(df4, year)
 
 nasboxr <- df4 %>% select(stabbr, year, purpose, fundtype, value, purposef, fundtypef)
 use_data(nasboxr, overwrite = TRUE)

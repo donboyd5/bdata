@@ -12,7 +12,7 @@
 }}
 \source{
 Bureau of the Census, prepared by Lucy Dadayan.
-  Table 21. Number of Poor and Poverty Rate, by State [XLS – 125k]
+  Table 21. Number of Poor and Poverty Rate, by State XLS
   http://www.census.gov/hhes/www/poverty/data/historical/hstpov21.xls
 See source code on GitHub.
 }
