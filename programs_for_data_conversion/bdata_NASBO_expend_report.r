@@ -43,56 +43,87 @@ df2 <- df %>% mutate(stabbr=stcodes$stabbr[match(STATE, stcodes$stname)]) %>%
   gather(variable, value, -stabbr, -year) %>%
   mutate(variable=tolower(variable))
 # count(df2, stabbr, STATE)
+count(df2, variable)
 
 # now create a better organization for variables and values
 # first, reverse the odd NASBO choice of reversing the coding for fund totals of capital-inclusive spending
 # just call it totx instead of capi; af means all funds
-df3 <- df2
-df3$variable[df3$variable=="gftot_capi"] <- "totx_gf"
-df3$variable[df3$variable=="fftot_capi"] <- "totx_ff"
-df3$variable[df3$variable=="oftot_capi"] <- "totx_of"
-df3$variable[df3$variable=="bftot_capi"] <- "totx_bf"
-df3$variable[df3$variable=="total_capi"] <- "totx_af"
-count(df3, variable) %>% data.frame
+fromto <- read_csv("from, to
+gftot_capi, totx_gf
+fftot_capi, totx_ff
+oftot_capi, totx_of
+bftot_capi, totx_bf
+total_capi, totx_af
+")
+fromto
+
 
 # separate the variable into purpose and fund type, then map names to each - imposing some consistency on the nasbo data
-purpdf <- read_csv(
- "corcp, Corrections capital
-  corr, Corrections
-  elsed, Elementary & secondary education
-  envcp, Environmental capital
-  hedcp, Higher education capital
-  hed, Higher education
-  hscap, Housing capital
-  mcaid, Medicaid
-  othca, Other cash assistance
-  othcp, Other capital
-  other, All other expenditures
-  tanf, TANF
-  totx, Total expenditures
-  trans, Transportation
-  trcap, Transportation capital",
- col_names=c("purpose", "purposef"))
+purpdf <- read_csv("purpose, purposef
+corr, Corrections
+elsed, Elementary & secondary education
+env, Environmental
+hied, Higher education
+hous, Housing
+medcaid, Medicaid
+othercashassist, Other cash assistance
+other, All other expenditures
+tanf, TANF
+totx, Total expenditures
+trans, Transportation")
+purpdf
 
 ftdf <- read_csv(
- "af, all funds
+  "af, all funds
   bf, bond funds
   ff, federal funds
   gf, general fund
   of, other funds",
- col_names=c("fundtype", "fundtypef"))
+  col_names=c("fundtype", "fundtypef"))
 
-df4 <- df3 %>% separate(variable, c("purpose", "fundtype")) %>%
-  mutate(purpose=ifelse(purpose=="hgred", "hed", purpose),
-         purpose=ifelse(purpose=="otca", "othca", purpose),
-         fundtype=ifelse(fundtype=="tot", "af", fundtype),
-         purposef=factor(purpose, levels=purpdf$purpose, labels=purpdf$purposef),
+
+df3 <- df2 %>% mutate(variable=mapvalues(variable, from=fromto$from, to=fromto$to),
+                      variable=str_replace(variable, "_tot", "_af"),
+                      variable=str_replace(variable, "cp_", "cap_"),
+                      variable=str_replace(variable, "mcaid", "medcaid"),
+                      variable=str_replace(variable, "otca", "othercashassist"),
+                      variable=str_replace(variable, "corcap", "corrcap"),
+                      variable=str_replace(variable, "hgred", "hied"),
+                      variable=str_replace(variable, "hedcap", "hiedcap"),
+                      variable=str_replace(variable, "hscap", "houscap"),
+                      variable=str_replace(variable, "othcap", "othercap"),
+                      variable=str_replace(variable, "trcap", "transcap"),
+                      xtype=ifelse(str_detect(variable, "cap_"), "capital", "total"),
+                      variable=str_replace(variable, "cap_", "_")
+                      ) %>%
+  separate(variable, c("purpose", "fundtype")) %>%
+  mutate(purposef=factor(purpose, levels=purpdf$purpose, labels=purpdf$purposef),
          fundtypef=factor(fundtype, levels=ftdf$fundtype, labels=ftdf$fundtypef))
-glimpse(df4)
-count(df4, purpose, purposef)
-count(df4, fundtype, fundtypef)
-count(df4, stabbr) # includes PR, does not include US
-count(df4, year)
 
-nasboxr <- df4 %>% select(stabbr, year, purpose, fundtype, value, purposef, fundtypef)
+count(df3, xtype, fundtypef, purposef) %>% data.frame
+
+nasboxr <- df3 %>% select(stabbr, year, xtype, purpose, fundtype, value, purposef, fundtypef)
 use_data(nasboxr, overwrite = TRUE)
+
+
+
+# look at the data
+nb <- nasboxr
+glimpse(nb)
+count(nb, purpose, purposef, fundtype) %>% spread(fundtype, n)
+
+nb %>% filter(stabbr=="NY", year==2015, fundtype=="af", xtype=="total")
+nb %>% filter(stabbr=="NY", year==2015, fundtype=="af") %>% spread(xtype, value)
+
+
+nb %>% filter(year %in% c(2008, 2015), fundtype=="af", xtype=="total") %>%
+  group_by(stabbr, year) %>%
+  mutate(share=value / value[purpose=="totx"] * 100) %>%
+  group_by(stabbr, purpose) %>%
+  mutate(dshare=share - share[year==2008]) %>%
+  filter(year==2015) %>%
+  select(stabbr, purpose, dshare) %>%
+  spread(purpose, dshare) %>%
+  arrange(medcaid)
+
+
