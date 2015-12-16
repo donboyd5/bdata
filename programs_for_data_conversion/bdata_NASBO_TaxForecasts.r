@@ -23,9 +23,10 @@ library(tidyr)
 #                define directories and files ####
 #****************************************************************************************************
 nasbod <- paste0("D:/Dropbox/NASBO/LATEST Data/")
-fssd <- "./data-raw/NASBO_TaxForecasts/"
+fssd <- "./data_intermediate/"
 
-fn <- "NASBO-FallFSS_12-10-2014.xlsx"
+
+fn <- "NASBO-FallFSS_12-10-2015.xlsx"
 path <- paste0(nasbod, fn)
 
 #****************************************************************************************************
@@ -46,33 +47,33 @@ path <- paste0(nasbod, fn)
 # there is no CIT data until 1990
 # every sheet ends with stabbr=US so we'll use that to decide what data to keep
 
-vnames<-c("stname", "stabbr", "stoe", "stce", "pitoe", "pitce", "citoe", "citce", "trc")
+vnames<-c("stname", "stabbr", "stoe", "stce", "pitoe", "pitce", "citoe", "citce") # don't use trc
 
 excel_sheets(path)
 
 readyear<-function(year) { # Read a single year of data. Call this repeatedly to get all years
   print(year)
   df <- read_excel(path, sheet=paste0(year, "-F")) # note that I had to remove space after F for 1987
-  df <- df[, 1:length(vnames)] # drop stray columns
+  df <- df[, 1:length(vnames)] # drop stray and unneeded columns
   names(df) <- vnames
-  lastrow <- which(df$stabbr=="US" & str_detect(df$stname, "United States")) # identify the last row of data, uniquely
+  lastrow <- which(df$stabbr=="US" & 
+                     (str_detect(df$stname, "United States") | str_detect(df$stname, "Total"))) # identify the last row of data, uniquely
   df <- df[1:lastrow, ]
   dfl <- df %>% gather(variable, value, -stname, -stabbr) %>%
     mutate(value=cton(value),
            year=year)
   return(dfl)
 }
-# df <- readyear(1987)
+# df <- readyear(2015)
 
-df <- ldply(1987:2014, readyear, .progress="text")
+df <- ldply(1987:2015, readyear, .progress="text")
 glimpse(df)
 count(df, year)
 count(df, variable)
 count(df, stabbr, stname)
 count(df, nchar(stabbr))
 df2 <- df %>% mutate(variable=as.character(variable)) %>%
-  select(stabbr, year, variable, value) %>%
-  filter(variable!="trc")
+  select(stabbr, year, variable, value)
 glimpse(df2)
 count(df2, stabbr)
 
@@ -80,72 +81,64 @@ saveRDS(df2, file=paste0(fssd, "nasbodataraw.rds"))
 
 
 #****************************************************************************************************
-#                    Replace selected California data with Lucy-collected data, save revised R file    ####
+#                    Get California, IL, and PA data that Lucy collected, replace, save revised R file    ####
 #****************************************************************************************************
-# get the revised/improved California data, which includes 2001 and 2009, and compare with California in the raw data
-# once we are convinced it is good, save to R file for LATER combination with the raw data
+# revision file needs: stabbr, year, variable, value
 
-calraw <- filter(readRDS(file=paste0(fssd, "nasbodataraw.rds")), stabbr=="CA") %>% mutate(type="raw")
-glimpse(calraw) # note that all are char except for fyear
-
-# create a similar file with the info obtained by Lucy from California DOF
-#          first two sets of numbers should be same as NASBO, next 2 are DOF estimates of the "current estimate"
-# i.e., the actual collections -- we want _dofest -- even though not the latest, they are comparable to how we are measuring
-# other states
+# based on extensive prior checking, assume the data from Lucy are correct and don't do further checks here
 vnames <- c("year", "stoe_nasbo", "pitoe_nasbo", "citoe_nasbo", "sumoe_nasbo", "junk1",
-                  "stce_nasbo", "pitce_nasbo", "citce_nasbo", "sumce_nasbo", "junk2",
-                  "stce_dofest", "pitce_dofest", "citce_dofest", "sumce_dofest", "junk3",
-                  "stce_doffinal", "pitce_doffinal", "citce_doffinal", "sumce_doffinal")
-calnew <- read_excel(path, sheet="California", col_names=vnames, col_types=rep("text", length(vnames)))
-
-calnew <- calnew %>% mutate(year=as.integer(str_sub(year, 1, 4)) + 1) %>%
+            "stce_nasbo", "pitce_nasbo", "citce_nasbo", "sumce_nasbo", "junk2",
+            "stce_dofest", "pitce_dofest", "citce_dofest", "sumce_dofest", "junk3",
+            "stce_doffinal", "pitce_doffinal", "citce_doffinal", "sumce_doffinal")
+cadf <- read_excel(path, sheet="California", col_names=vnames, col_types=rep("text", length(vnames)))
+cadf2 <- cadf %>% mutate(year=as.integer(str_sub(year, 1, 4)) + 1) %>%
   filter(year %in% 1998:2012) %>% # we only have CA dat from CA for these years
-  select(-contains("junk"), -contains("sum")) %>%
   gather(variable, value, -year) %>%
+  filter(str_detect(variable, "oe_") | str_detect(variable, "_dofest"), !str_detect(variable, "sum")) %>%
   separate(variable, c("variable", "type")) %>%
   mutate(year=as.integer(year),
          value=cton(value), 
-         stabbr="CA")
-glimpse(calnew)
-count(calnew, variable)
+         stabbr="CA") %>%
+  select(-type)
+glimpse(cadf2)
 
-# now compare raw and updated data; if they are good, then replace the cal data in the file with calnew
-comp <- bind_rows(calraw, calnew) %>%
-  spread(type, value)
-comp
+# here are IL and PA
+# DJB:  REMOVE IL PIT 2015 as it looks like an outlier to me - if we use these PIT numbers
+# we would be saying the UNDERESTIMATED PIT by $2.8b, or 16%
+vnames <- c("source", "state", "stabbr", "stoe", "stce", "pitoe", "pitce", "citoe", "citce", "junk")
+ilpadf <- read_excel(path, sheet="IL&PA 2015", skip=1, col_names=FALSE)
+ilpadf
+ilpadf2 <- ilpadf[1:4, 1:9]
+names(ilpadf2) <- c("source", "state", "stabbr", "stoe", "stce", "pitoe", "pitce", "citoe", "citce")
+ilpadf2 <- ilpadf2 %>% filter(source=="RIG") %>%
+  select(-source, -state) %>%
+  mutate(year=2015) %>%
+  gather(variable, value, -stabbr, -year) %>%
+  filter(!(stabbr=="IL" & str_detect(variable, "pit"))) %>% # REMOVE IL PIT 2015 -- OUTLIER!!!!
+  mutate(year=as.integer(year),
+         variable=as.character(variable),
+         value=cton(value)) %>%
+  arrange(stabbr, variable)
 
-# compare the original estimates in the raw data and in the calnew data
-comp %>% select(-doffinal, -dofest) %>%
-  filter(str_sub(variable, -2, -1)=="oe", !is.na(nasbo), variable!="sumoe") %>%
-  mutate(diff=nasbo - raw) %>%
-  filter(diff!=0)
-# good the dof-nasbo data match the nasbo-raw data for oe
-
-# now compare the current estimates in the raw data to the dof final estimates
-comp %>% filter(str_sub(variable, -2, -1)=="ce", !(is.na(dofest) & is.na(doffinal))) %>%
-  mutate(diff=nasbo - raw,
-         diff2=dofest - raw) %>%
-  arrange(-abs(diff)) # ok, all the data match except that 2001 and 2009 current ests had 0 in the revised rather than NA
-
-# now create revised data with the good new california data -- dofest
-glimpse(calnew)
-calnewkeep <- calnew %>% filter(type=="dofest") %>% rename(value.new=value)
+newdat <- bind_rows(cadf2, ilpadf2)
 
 df <- readRDS(file=paste0(fssd, "nasbodataraw.rds"))
 glimpse(df)
 count(df, variable)
 
-df2 <- full_join(df, calnewkeep)
-# filter(df2, stabbr=="CA") %>% data.frame
-df2 <- full_join(df, calnewkeep) %>%
-  mutate(value=ifelse(type=="dofest" & !is.na(value.new), value.new, value)) %>% # MUST include na check for value.new!!!
-  select(-type, -value.new)
+df2 <- full_join(df, rename(newdat, value.new=value)) %>%
+  mutate(value=ifelse(!is.na(value.new), value.new, value)) %>%
+  select(-value.new)
 glimpse(df2)
 
 df %>% filter(stabbr=="AL", year==1987)
 df2 %>% filter(stabbr=="AL", year==1987)
 
+df %>% filter(stabbr=="IL", year==2015)
+df2 %>% filter(stabbr=="IL", year==2015)
+
 saveRDS(df2, file=paste0(fssd, "nasbodataraw_revised.rds"))
+
 
 #****************************************************************************************************
 #                Data cleaning ####
@@ -231,5 +224,95 @@ glimpse(nasbofcerr)
 use_data(nasbofcerr, overwrite = TRUE)
 
 
+#****************************************************************************************************
+#                    Examine data   ####
+#****************************************************************************************************
+nasbofcerr
+df <- nasbofcerr
+
+yfun <- function(y) return(median(y, na.rm=TRUE))
+# change order of 2 plots
+ggplot(data=mutate(filter(df, tax=="sumbig3"), 
+                   ustotal=stabbr=="US", 
+                   ustotal=factor(ustotal, levels=c(F, T), labels=c("State median", "US sum"))),
+       mapping=aes(x=year, y=pcterr, colour=ustotal)) +
+  stat_summary(geom = "point", fun.y = "yfun") +
+  stat_summary( geom = "line", fun.y = "yfun") +
+  geom_hline(yintercept = 0)
+
+
+ggplot(data=filter(df, stabbr!="US", tax!="cit"), mapping=aes(x=year, y=pcterr, colour=tax)) +
+  stat_summary(geom = "point", fun.y = "yfun") +
+  stat_summary( geom = "line", fun.y = "yfun")
+
+
+
+#****************************************************************************************************
+#                    OLD: Replace selected California data with Lucy-collected data, save revised R file    ####
+#****************************************************************************************************
+# get the revised/improved California data, which includes 2001 and 2009, and compare with California in the raw data
+# once we are convinced it is good, save to R file for LATER combination with the raw data
+# 
+# calraw <- filter(readRDS(file=paste0("./data/", "nasbodataraw.rds")), stabbr=="CA") %>% mutate(type="raw")
+# glimpse(calraw) # note that all are char except for fyear
+# 
+# # create a similar file with the info obtained by Lucy from California DOF
+# #          first two sets of numbers should be same as NASBO, next 2 are DOF estimates of the "current estimate"
+# # i.e., the actual collections -- we want _dofest -- even though not the latest, they are comparable to how we are measuring
+# # other states
+# vnames <- c("year", "stoe_nasbo", "pitoe_nasbo", "citoe_nasbo", "sumoe_nasbo", "junk1",
+#                   "stce_nasbo", "pitce_nasbo", "citce_nasbo", "sumce_nasbo", "junk2",
+#                   "stce_dofest", "pitce_dofest", "citce_dofest", "sumce_dofest", "junk3",
+#                   "stce_doffinal", "pitce_doffinal", "citce_doffinal", "sumce_doffinal")
+# calnew <- read_excel(path, sheet="California", col_names=vnames, col_types=rep("text", length(vnames)))
+# 
+# calnew <- calnew %>% mutate(year=as.integer(str_sub(year, 1, 4)) + 1) %>%
+#   filter(year %in% 1998:2012) %>% # we only have CA dat from CA for these years
+#   select(-contains("junk"), -contains("sum")) %>%
+#   gather(variable, value, -year) %>%
+#   separate(variable, c("variable", "type")) %>%
+#   mutate(year=as.integer(year),
+#          value=cton(value), 
+#          stabbr="CA")
+# glimpse(calnew)
+# count(calnew, variable)
+# 
+# # now compare raw and updated data; if they are good, then replace the cal data in the file with calnew
+# comp <- bind_rows(calraw, calnew) %>%
+#   spread(type, value)
+# comp
+# 
+# # compare the original estimates in the raw data and in the calnew data
+# comp %>% select(-doffinal, -dofest) %>%
+#   filter(str_sub(variable, -2, -1)=="oe", !is.na(nasbo), variable!="sumoe") %>%
+#   mutate(diff=nasbo - raw) %>%
+#   filter(diff!=0)
+# # good the dof-nasbo data match the nasbo-raw data for oe
+# 
+# # now compare the current estimates in the raw data to the dof final estimates
+# comp %>% filter(str_sub(variable, -2, -1)=="ce", !(is.na(dofest) & is.na(doffinal))) %>%
+#   mutate(diff=nasbo - raw,
+#          diff2=dofest - raw) %>%
+#   arrange(-abs(diff)) # ok, all the data match except that 2001 and 2009 current ests had 0 in the revised rather than NA
+# 
+# # now create revised data with the good new california data -- dofest
+# glimpse(calnew)
+# calnewkeep <- calnew %>% filter(type=="dofest") %>% rename(value.new=value)
+# 
+# df <- readRDS(file=paste0(fssd, "nasbodataraw.rds"))
+# glimpse(df)
+# count(df, variable)
+# 
+# df2 <- full_join(df, calnewkeep)
+# # filter(df2, stabbr=="CA") %>% data.frame
+# df2 <- full_join(df, calnewkeep) %>%
+#   mutate(value=ifelse(type=="dofest" & !is.na(value.new), value.new, value)) %>% # MUST include na check for value.new!!!
+#   select(-type, -value.new)
+# glimpse(df2)
+# 
+# df %>% filter(stabbr=="AL", year==1987)
+# df2 %>% filter(stabbr=="AL", year==1987)
+# 
+# saveRDS(df2, file=paste0(fssd, "nasbodataraw_revised.rds"))
 
 
