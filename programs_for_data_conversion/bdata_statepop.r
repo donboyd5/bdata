@@ -22,14 +22,18 @@
 # ST-EST00INT-01.csv 2000-2010
 
 library(dplyr)
+options(dplyr.print_min = 60) # default is 10
+options(dplyr.print_max = 60) # default is 20
 library(tidyr)
 library(gdata)
 library(readr)
+library(bdata)
 
 # library(btools)
 
 
-popdir <- paste0("./data-raw/statepop/")
+# popdir <- paste0("./data-raw/statepop/")
+popdir <- "D:/Data/bdata_package_sourcedata/statepop/"
 
 # CAUTION: we do not have intercensal data for 1970, 1980 and must use decennial for those years(???)
 
@@ -114,12 +118,12 @@ fn <- "CO-EST2001-12-00.csv"
 tpop <- read.csv(paste0(popdir, fn), header=FALSE, skip=3, colClasses="character")
 names(tpop) <- c("state", "1990decennial1", as.character(1990:1999), "2000decennial2")
 tpop$state <- trim(gsub("\\s"," ",tpop$state)) # replace goofy ascii characters with spaces so we can work with state names
-tpopl <- gather(tpop, variable, value, -state) # melt(tpop,id="state")
+tpopl <- gather(tpop, variable, value, -state)
 tpopl$stabbr <- factor(tpopl$state, levels=stcodes$stname, labels=stcodes$stabbr)
 tpopl$stabbr[tpopl$state=="USA"] <- "US"
 tpopl$year <- as.numeric(substr(tpopl$variable,1,4))
 tpopl$value <- btools::cton(tpopl$value)/1000
-tpopl <- subset(tpopl, !(is.na(value) | is.na(year)))
+tpopl <- filter(tpopl, !(is.na(value) | is.na(year)))
 tpopl$variable <- as.character(tpopl$variable)
 tpopl$esttype <- ifelse(grepl("decennial",tpopl$variable), substr(tpopl$variable,5,nchar(tpopl$variable)), "intercensal")
 count(tpopl, year)
@@ -154,10 +158,13 @@ glimpse(pop2000)
 # url<-"http://www.census.gov/popest/data/national/totals/2013/files/NST_EST2013_ALLDATA.csv"
 # fn<-"NST_EST2011_ALLDATA.csv" #
 # tpop <- read.csv(paste0(popdir, fn), header=TRUE, skip=0, colClasses="character")
-url <- "http://www.census.gov/popest/data/state/totals/2014/tables/NST-EST2014-01.csv"
+# url <- "http://www.census.gov/popest/data/state/totals/2014/tables/NST-EST2014-01.csv"
 # tpopold <- read.csv(url, header=TRUE, skip=0, colClasses="character")
-tpop <- read_csv(url)
-names(tpop) <- c("state", "2010decennial1", "2010estbase", as.character(2010:2014))
+# tpop <- read_csv(url)
+
+tpop <- read_csv(paste0(popdir, "NST-EST2015-01.csv"))
+glimpse(tpop)
+names(tpop) <- c("state", "2010decennial1", "2010estbase", as.character(2010:2015))
 # decennial1 means it is the only decennial census after the year in question
 head(tpop)
 pop2010 <- tpop %>% select(-`2010decennial1`, -`2010estbase`) %>%
@@ -188,13 +195,13 @@ count(popall, stabbr)
 spop.a <- filter(popall, esttype=="intercensal" | (year %in% c(1970, 1980) & esttype=="decennial1")) %>%
   select(stabbr, year, value, esttype) %>%
   arrange(stabbr, year)
-comment(spop.a) <- c("Census pop, state and year, thousands, (July, except 1970 and 1980 where April decennial is used)")
+comment(spop.a) <- c("Census pop, state and year 1900-2015, thousands, (July - except 1970 and 1980 where April decennial is used)")
 
 devtools::use_data(spop.a, overwrite=TRUE)
 
 # ALL DONE!! ####
 
-
+spop.a %>% filter(stabbr=="CA", year>=1975) %>% data.frame
 
 library(ggplot2)
 qplot(year, log(value), data=filter(spop.a, stabbr %in% c("CA","FL","IL","NY","TX","VA")), colour=stabbr, geom=c("point","line"))

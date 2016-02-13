@@ -1,11 +1,13 @@
 # bdata_statepop_quarterly.r
 # Don Boyd
-# 4/29/2015
+# 2/12/2016
 
 library(dplyr)
 library(tidyr)
 library(forecast) # univariate package from Hyndman
 library(ggplot2)
+options(dplyr.print_min = 60) # default is 10
+options(dplyr.print_max = 60) # default is 20
 library(lubridate)
 library(btools)
 
@@ -13,9 +15,8 @@ library(btools)
 #   forecast state population one year ahead, then
 #   interpolate to get quarters
 
-data(spop.a) # use the latest version of spop.a
-
-# pkgdir <- paste0("./data/") # maybe use this??
+load("./data/spop.a.rda") # use the latest version of spop.a
+ht(spop.a)
 
 
 #----- Forecast a year or two ahead ---------------------------------------------------------
