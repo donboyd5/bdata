@@ -32,9 +32,103 @@ povfn <- "Gambling-database-2000-recent.xlsx"
 # Table 21. Number of Poor and Poverty Rate, by State [XLS – 125k]
 # http://www.census.gov/hhes/www/poverty/data/historical/hstpov21.xls
 
+# Small Area Income and Poverty Estimates (saipe)
+# http://www.census.gov/did/www/saipe/data/statecounty/data/index.html
+povd2 <- "D:/Data/bdata_package_sourcedata/census_poverty/"
+saiped <- paste0(povd2, "saipe/")
 
 #****************************************************************************************************
-#                read and save data ####
+#                download saipe data ####
+#****************************************************************************************************
+# get the saipe state data for 2003-plus, which are all in the same format
+# they have poverty nums, pov rate, breakdown by ages, and median hh income
+
+dlyear <- function(year) {
+  # example:
+  # http://www.census.gov/did/www/saipe/downloads/estmod14/est14US.xls
+  pre <- "http://www.census.gov/did/www/saipe/downloads/estmod"
+  y2 <- str_sub(year, 3, 4)
+  fn <- paste0("est", y2, "US.xls")
+  fget <- paste0(pre, y2, "/", fn)
+  fput <- paste0(saiped, fn)
+  download.file(fget, fput, mode="wb")
+  return(NULL)
+}
+
+l_ply(2003:2014, dlyear)
+dlyear(2014)
+
+#****************************************************************************************************
+#                read and save saipe data ####
+#****************************************************************************************************
+year <- 2003
+y2 <- str_sub(year, 3, 4)
+fn <- paste0("est", y2, "US.xls")
+fdat <- paste0(saiped, fn)
+df <- read_excel(fdat)
+vnames <- c("stfips", "stabbr", "stname", 
+            "povnum_all", "povnum_lb90_all", "povnum_ub90_all", "povrate_all", "povrate_lb90_all", "povrate_ub90_all",
+            "povnum_age017", "povnum_lb90_age017", "povnum_ub90_age017", "povrate_age017", "povrate_lb90_age017", "povrate_ub90_age017",
+            "povnum_age517", "povnum_lb90_age517", "povnum_ub90_age517", "povrate_age517", "povrate_lb90_age517", "povrate_ub90_age517",
+            "mhhi_all", "mhhi_lb90_all", "mhhi_ub90_all",
+            "povnum_age04", "povnum_lb90_age04", "povnum_ub90_age04", "povrate_age04", "povrate_lb90_age04", "povrate_ub90_age04")
+ncol(df); length(vnames)
+names(df) <- vnames
+dfl <- df %>% select(-stfips, -stname) %>%
+  gather(variable, value, -stabbr) %>%
+  mutate(year=year,
+         value=cton(value)) %>%
+  filter(!is.na(value)) %>%
+  select(stabbr, year, variable, value)
+
+f <- function(year) {
+  y2 <- str_sub(year, 3, 4)
+  fn <- paste0("est", y2, "US.xls")
+  fdat <- paste0(saiped, fn)
+  df <- read_excel(fdat)
+  vnames <- c("stfips", "stabbr", "stname", 
+              "povnum_all", "povnum_lb90_all", "povnum_ub90_all", "povrate_all", "povrate_lb90_all", "povrate_ub90_all",
+              "povnum_age017", "povnum_lb90_age017", "povnum_ub90_age017", "povrate_age017", "povrate_lb90_age017", "povrate_ub90_age017",
+              "povnum_age517", "povnum_lb90_age517", "povnum_ub90_age517", "povrate_age517", "povrate_lb90_age517", "povrate_ub90_age517",
+              "mhhi_all", "mhhi_lb90_all", "mhhi_ub90_all",
+              "povnum_age04", "povnum_lb90_age04", "povnum_ub90_age04", "povrate_age04", "povrate_lb90_age04", "povrate_ub90_age04")
+  ncol(df); length(vnames)
+  names(df) <- vnames
+  dfl <- df %>% select(-stfips, -stname) %>%
+    gather(variable, value, -stabbr) %>%
+    mutate(year=as.integer(year),
+           value=cton(value)) %>%
+    filter(!is.na(value)) %>%
+    select(stabbr, year, variable, value)
+  return(dfl)
+}
+
+df <- ldply(2003:2014, f, .progress="text")
+warnings()
+count(df, year)
+count(df, stabbr)
+count(df, variable)
+
+df %>% filter(stabbr=="LA", variable=="povrate_all") %>% qplot(year, value, data=., geom=c("point", "line"))
+
+vars <- paste0("povrate_", c("", "lb90_", "ub90_"), "all")
+vars <- paste0("povrate_", c("", "lb90_", "ub90_"), "age017")
+st <- "TX"
+df %>% filter(stabbr==st, variable %in% vars) %>% 
+  qplot(year, value, data=., colour=variable, geom=c("point", "line")) 
+
+sts <- c("CA", "AZ", "NM", "NY", "US")
+df %>% filter(stabbr %in% sts, variable=="povrate_age517") %>% 
+  qplot(year, value, data=., colour=stabbr, geom=c("point", "line")) 
+
+saipe <- df
+comment(saipe) <- "State poverty and median household income from SAIPE program, annual"
+use_data(saipe, overwrite = TRUE)
+
+
+
+#****************************************************************************************************
+#                read and save Lucy's data from Census hstpov21.xls ####
 #****************************************************************************************************
 df <- read_excel(paste0(povd, povfn), sheet="PovertyRate")
 glimpse(df)

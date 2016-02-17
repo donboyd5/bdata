@@ -1,4 +1,4 @@
-#' State codes and names
+#' State codes and names.
 #'
 #' State codes, state name, BEA region abbreviation, BEA region name.
 #' \cr\cr

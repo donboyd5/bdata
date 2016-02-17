@@ -3,7 +3,7 @@
 \docType{data}
 \name{stcodes}
 \alias{stcodes}
-\title{State codes and names}
+\title{State codes and names.}
 \format{Data frame with 1 row per entity
 \describe{
 \item{stabbr}{State postal abbreviation, character}
