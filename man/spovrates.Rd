@@ -4,28 +4,26 @@
 \name{spovrates}
 \alias{spovrates}
 \title{State poverty rates, annual.}
-\format{Data frame with 1 row per state per year
+\format{Data frame with 1 row per state per year per type of poverty rate
 \describe{
-\item{stabbr}{State postal abbreviation, character}
-\item{year}{Calendar year, numeric}
-\item{povrate}{State poverty rate as a percentage, numeric}
+\item{stabbr}{State postal abbreviation; character}
+\item{year}{Calendar year; numeric}
+\item{povrate}{State poverty rate as a percentage; numeric}
+\item{type}{Data source: cps, acs, saipe, or best; character}
 }}
 \source{
-Bureau of the Census, prepared by Lucy Dadayan.
-  Table 21. Number of Poor and Poverty Rate, by State XLS
-  http://www.census.gov/hhes/www/poverty/data/historical/hstpov21.xls
-See source code on GitHub.
+Bureau of the Census: cps (hstpov21.xls); acs (American FactFinder downloaded files); saipe (API).
 }
 \usage{
 spovrates
 }
 \description{
-State poverty rates, annual, 2000 through most recent, from the Census Bureau. One row per state per year.
+State poverty rates, annual, 1980 through most recent, from the Census Bureau. One row per state per year per type of rate.
 \cr\cr
-}
-\details{
+Includes all 50 states, United States (US), and District of Columbia (DC) for all years. PR in a few years.
 \cr\cr
-Includes all 50 states, United States (US), and District of Columbia (DC) for all years.
+comment(spovrates) for info
+\cr\cr
 }
 \examples{
   spovrates
