@@ -14,7 +14,7 @@
 \item{value}{State tax revenue, $ thousands, numeric}
 }}
 \source{
-Bureau of the Census, historical database (1902-2009) and state tax files (2010-2014). See GitHub source code for details.
+Bureau of the Census, historical database (1902-2009) and state tax files (2010-2015). See GitHub source code for details.
 }
 \usage{
 sgtax.a

@@ -2,7 +2,7 @@
 #'
 #' State government taxes, annual.
 #'
-#' @source Bureau of the Census, historical database (1902-2009) and state tax files (2010-2014). See GitHub source code for details.
+#' @source Bureau of the Census, historical database (1902-2009) and state tax files (2010-2015). See GitHub source code for details.
 #' @format Data frame with 1 row per state per year per variable
 #' \describe{
 #' \item{stabbr}{State postal abbreviation, character}
