@@ -1,6 +1,6 @@
 # bdata_statepop_quarterly.r
 # Don Boyd
-# 2/12/2016
+# 4/20/2016
 
 library(dplyr)
 library(tidyr)
@@ -15,7 +15,7 @@ library(btools)
 #   forecast state population one year ahead, then
 #   interpolate to get quarters
 
-load("./data/spop.a.rda") # use the latest version of spop.a
+load("./data/spop.a.rda") # use the latest version of spop.a -- annual population by state and year
 ht(spop.a)
 
 
@@ -44,10 +44,7 @@ ht(fcspop)
 st <- "CA"
 qplot(year, value, data=filter(fcspop, stabbr==st & year>=2000), geom=c("point","line")) # inspect a few states
 
-
 #-----------------------------------------------------------------------------------------------
-
-
 
 #----- Interpolate ----------------------------------------------------------------------------
 
@@ -78,17 +75,25 @@ count(spop.q, date) %>% data.frame
 devtools::use_data(spop.q, overwrite=TRUE)
 
 
+glimpse(spop.a)
+spop.q %>% filter(stabbr=="NY", year(date)>=1990) %>% qplot(date, value, data=., geom=c("point", "line"))
+d1 <- spop.a %>% mutate(date=as.Date(paste(year, 7, 1, sep="-")), type="annual")
+d2 <- spop.q %>% mutate(type="quarterly")
+d3 <- bind_rows(d1, d2)
+
+st <- "IL"
+d3 %>% filter(stabbr==st, year(date)>=2000) %>% qplot(date, value, data=., colour=type, geom=c("point", "line"), main=st)
+
+glimpse(d1)
 
 #****************************************************************************************************
-#
 #                Various checks below here ####
-#
 #****************************************************************************************************
 ################################################################################################
 # compare annual to quarterly values
 # in general, quarterly seems to be 0.1 to 0.5% lower than annual in recent years
 # AK and HI look bad in recent years
-df<-getdata("pop")
+df <- getdata("pop")
 dfq<-getdata("popq")
 str(df); str(dfq)
 

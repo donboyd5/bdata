@@ -2,7 +2,7 @@
 
 # Steps:
 #   1. Get historical database 1902-2010
-#   2. Get recent ic data 2010-2014
+#   2. Get recent ic data 2010-2015
 #   3. Conform and combine files
 
 # This program is set up on the assumption that 1 and 2 have been done, so it starts with 3. If 1 or 2 have been
@@ -13,24 +13,40 @@
 # - before 1952, the details only add to about 90% of the total - cannot calculate aggregates such as selective sales before that
 # - for now (4/30/2015) I use the reported total aggregate for history but do not bother with reported other aggregates
 
+#****************************************************************************************************
+#                Libraries ####
+#****************************************************************************************************
+library("magrittr")
+library("plyr") # needed for ldply; must be loaded BEFORE dplyr
+library("tidyverse")
+options(tibble.print_max = 60, tibble.print_min = 60) # if more than 60 rows, print 60 - enough for states
+# ggplot2 tibble tidyr readr purrr dplyr
 
 
-library(dplyr)
-library(ggplot2)
-library(stringr)
-library(tidyr)
-library(gdata) # for trim
-library(readr)
-library(readxl)
+library("hms") # hms, for times.
+library("stringr") # stringr, for strings.
+library("lubridate") # lubridate, for date/times.
+library("forcats") # forcats, for factors.
+library("readxl") # readxl, for .xls and .xlsx files.
+library("haven") # haven, for SPSS, SAS and Stata files.
 
-library(btools)
-# library(bdata) # so we have stcodes
+library("grDevices")
+library("knitr")
 
-options(dplyr.print_min = 60) # default is 10
-options(dplyr.print_max = 60) # default is 20
+library("btools")
+library("bdata") # so we have stcodes
+
+# library(gdata) # for trim
 
 
-stax_d <- paste0("./data-raw/census_sgtax_annual/")
+#****************************************************************************************************
+#                Globals ####
+#****************************************************************************************************
+# D:\Data\bdata_package_sourcedata\census_sgtax_annual\
+
+# stax_d <- paste0("./data-raw/census_sgtax_annual/")
+stax_d <- paste0("D:/Data/bdata_package_sourcedata/census_sgtax_annual/")
+
 
 
 #****************************************************************************************************
@@ -38,7 +54,7 @@ stax_d <- paste0("./data-raw/census_sgtax_annual/")
 #****************************************************************************************************
 # create mapping
 # note that I have created T00 - it is not in the data
-icodes <- "ic, variable, vname
+icodes <- read_csv("ic, variable, vname
 T00, Total Taxes (T00), tottax
 T01, Property Tax (T01), proptax
 T09, Total Gen Sales Tax (T09), gst
@@ -65,9 +81,10 @@ T50, Death and Gift Tax (T50), egt
 T51, Docum and Stock Tr Tax (T51), stt
 T53, Severance Tax (T53), sevtax
 T99, Taxes NEC (T99), nectax"
-icodes <- read_csv(icodes) %>% mutate_each(funs(trim))
-names(icodes) <- trim(names(icodes)) # just in case spaces crept into the names
+)
 icodes
+names(icodes)
+
 
 dfhist <- readRDS(paste0(stax_d, "sgtaxes.histdb.rds"))
 dfnew <- readRDS(paste0(stax_d, "sgtaxes.latest.rds"))
@@ -108,7 +125,7 @@ count(dfall, ic, variable, vname)
 qplot(year, value, data=filter(dfall, stabbr=="US", ic=="T00"), geom=c("point", "line")) # make sure units from 2 files are the same
 
 # now we need selected totals - CANNOT CALCULATE THESE BEFORE 1952!!!!
-recipes <- "vname, ic
+recipes <- read_csv("vname, ic
 selsalestax, T10
 selsalestax, T11
 selsalestax, T12
@@ -125,11 +142,9 @@ lictax, T24
 lictax, T25
 lictax, T27
 lictax, T28
-"
-recipesdf <- read_csv(recipes) %>% mutate_each(funs(trim)) %>% filter(!is.na(vname))
-names(recipesdf) <- str_replace_all(names(recipesdf), " ", "") # get rid of any spaces in variables names
-# recipesdf
-varsums <- recipesdf %>% left_join(select(filter(dfall, year>=1952), -vname)) %>%
+")
+recipes
+varsums <- recipes %>% left_join(select(filter(dfall, year>=1952), -vname)) %>%
   group_by(stabbr, year, vname) %>%
   summarise(value=sum(value, na.rm=TRUE))
 
@@ -144,6 +159,8 @@ devtools::use_data(sgtax.a, overwrite=TRUE)
 #                2. get recent data ####
 #****************************************************************************************************
 # http://www2.census.gov/govs/statetax/14staxcd.txt
+# http://www2.census.gov/govs/statetax/15staxcd.txt
+
 getyear <- function(year) {
   yy <- str_sub(as.character(year), 3, 4)
   url <- paste0("http://www2.census.gov/govs/statetax/", yy, "staxcd.txt")
@@ -152,15 +169,21 @@ getyear <- function(year) {
   names(df) <- str_sub(names(df), 1, 2)
   okcols <- c("ic", as.character(stcodes$stabbr))
   df2 <- df[, which(names(df) %in% okcols)]
-  dfl <- df2 %>% gather(stabbr, value, -ic)
+  dfl <- df2 %>% gather(stabbr, value, -ic) %>%
+    mutate(value=as.numeric(value))
   return(dfl)
 }
 
 
-dfl <- data_frame(year=2010:2014) %>%
+dfl <- data_frame(year=2010:2015) %>%
   group_by(year) %>%
   do(getyear(.$year))
+
+ht(dfl)
+
 saveRDS(dfl, paste0(stax_d, "sgtaxes.latest.rds"))
+
+# readRDS(paste0(stax_d, "sgtaxes.latest.rds"))
 
 
 #****************************************************************************************************
