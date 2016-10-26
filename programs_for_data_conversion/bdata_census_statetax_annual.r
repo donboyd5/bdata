@@ -1,5 +1,8 @@
 # Create a data file with tax revenue in $ thousands, by state, year, and type of tax.
 
+# IGNORE STEPS BELOW. AS OF TODAY 10/26/2016 I AM USING THE CENSUS HISTORICAL DATABASE.
+
+
 # Steps:
 #   1. Get historical database 1902-2010
 #   2. Get recent ic data 2010-2015
@@ -45,7 +48,7 @@ library("bdata") # so we have stcodes
 # D:\Data\bdata_package_sourcedata\census_sgtax_annual\
 
 # stax_d <- paste0("./data-raw/census_sgtax_annual/")
-stax_d <- paste0("D:/Data/bdata_package_sourcedata/census_sgtax_annual/")
+# stax_d <- paste0("D:/Data/bdata_package_sourcedata/census_sgtax_annual/")
 
 stax_d <- "D:/Data/CensusFinanceData/StateTax/stcfy16/state_tax_collections/"
 stfn <- "STC_Historical_DB.xls"
@@ -53,6 +56,7 @@ stfn <- "STC_Historical_DB.xls"
 df <- read_excel(paste0(stax_d, stfn))
 problems(df)
 glimpse(df)
+count(df, Name)
 
 df2 <- df %>% rename(year=Year, stcen=State, stname=Name, fye=`FY Ending Date`) %>%
   mutate(stabbr=str_sub(stname, 1, 2))
@@ -75,6 +79,7 @@ df4 <- df3 %>% select(-stname, -stcen, -fye) %>%
   mutate(ic=ifelse(ic=="C105", "T00", ic))
 glimpse(df4)
 count(df4, ic, variable)
+count(df4, stabbr)
 
 # create mapping
 # note that I have created T00 - it is not in the data
@@ -115,11 +120,32 @@ df5 <- df4 %>% mutate(variable=ifelse(ic %in% icodes$ic, icodes$variable[match(i
 glimpse(df5)
 count(df5, ic, vname, variable)
 
+# Lastly, recompute US totals for 2013+ because the totals erroneously include in which DC
+# verify
+df5 %>% filter(vname=="tottax") %>%
+  mutate(usrec=ifelse(stabbr=="US", "US", "state")) %>%
+  group_by(year, usrec) %>%
+  summarise(tot=sum(value, na.rm=TRUE) / 1e3) %>%
+  spread(usrec, tot) %>%
+  mutate(diff=US - state) %>%
+  filter(year>=1970)
+# yes, 2013+ is the problem
+ustots <- df5 %>%
+  filter(stabbr!="US", year>=2013) %>%
+  group_by(year, ic, vname, variable) %>%
+  summarise(value=sum(value, na.rm=TRUE)) %>%
+  mutate(stabbr="US")
+
+df6 <- df5 %>% filter(!((stabbr=="US") & (year>=2013))) %>%
+  bind_rows(ustots) %>%
+  arrange(stabbr, year, ic, vname, variable)
+glimpse(df6)
+
 # plausible??
-df5 %>% filter(stabbr=="NY", vname=="tottax") %>%
+df6 %>% filter(stabbr=="US", vname=="tottax") %>%
   ggplot(aes(year, value)) + geom_line()
 
-sgtax.a <- df5
+sgtax.a <- df6
 devtools::use_data(sgtax.a, overwrite=TRUE)
 
 
