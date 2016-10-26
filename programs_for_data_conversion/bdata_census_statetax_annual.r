@@ -47,6 +47,81 @@ library("bdata") # so we have stcodes
 # stax_d <- paste0("./data-raw/census_sgtax_annual/")
 stax_d <- paste0("D:/Data/bdata_package_sourcedata/census_sgtax_annual/")
 
+stax_d <- "D:/Data/CensusFinanceData/StateTax/stcfy16/state_tax_collections/"
+stfn <- "STC_Historical_DB.xls"
+
+df <- read_excel(paste0(stax_d, stfn))
+problems(df)
+glimpse(df)
+
+df2 <- df %>% rename(year=Year, stcen=State, stname=Name, fye=`FY Ending Date`) %>%
+  mutate(stabbr=str_sub(stname, 1, 2))
+glimpse(df2)
+icodes.vars <- tibble(ic=names(df2), variable=as.character(df2[1, ])) %>%
+  filter(!(is.na(variable) | variable=="NA"))
+icodes.vars
+
+df3 <- df2 %>% gather(ic, value, -year, -stcen, -stname, -fye, -stabbr)
+count(df3, stabbr, stname, stcen)
+count(df3, year)
+# note that there are exhibit values for AK, HI for some years
+
+df4 <- df3 %>% select(-stname, -stcen, -fye) %>%
+  mutate(year=as.integer(year),
+         value=ifelse(str_detect(value, "-11111"), NA, value),
+         value=as.numeric(value)) %>%
+  filter(!is.na(value)) %>%
+  mutate(variable=icodes.vars$variable[match(ic, icodes.vars$ic)]) %>%
+  mutate(ic=ifelse(ic=="C105", "T00", ic))
+glimpse(df4)
+count(df4, ic, variable)
+
+# create mapping
+# note that I have created T00 - it is not in the data
+icodes <- read_csv("ic, variable, vname
+T00, Total Taxes (T00), tottax
+T01, Property Tax (T01), proptax
+T09, Total Gen Sales Tax (T09), gst
+T10, Alcoholic Beverage Tax (T10), abt
+T11, Amusement Tax (T11), amusetax
+T12, Insurance Premium Tax (T12), inspremtax
+T13, Motor Fuels Tax (T13), mft
+T14, Parimutuels Tax (T14), pmt
+T15, Public Utility Tax (T15), utiltax
+T16, Tobacco Tax (T16), cigtax
+T19, Other Select Sales Tax (T19), othrselsalestax
+T20, Alcoholic Beverage Lic (T20), ablic
+T21, Amusement License (T21), amuselic
+T22, Corporation License (T22), corplic
+T23, Hunt and Fish License (T23), huntfishlic
+T24, Motor Vehicle License (T24), mvlic
+T25, Motor Veh Oper License (T25), mvoplic
+T27, Public Utility License (T27), utillic
+T28, Occup and Bus Lic NEC (T28), occbuslic
+T29, Other License Taxes (T29), othrlic
+T40, Individual Income Tax (T40), iit
+T41, Corp Net Income Tax (T41), cit
+T50, Death and Gift Tax (T50), egt
+T51, Docum and Stock Tr Tax (T51), stt
+T53, Severance Tax (T53), sevtax
+T99, Taxes NEC (T99), nectax"
+)
+icodes
+names(icodes)
+
+df5 <- df4 %>% mutate(variable=ifelse(ic %in% icodes$ic, icodes$variable[match(ic, icodes$ic)], variable),
+                      vname=icodes$vname[match(ic, icodes$ic)]) %>%
+  select(stabbr, year, ic, vname, variable, value)
+glimpse(df5)
+count(df5, ic, vname, variable)
+
+# plausible??
+df5 %>% filter(stabbr=="NY", vname=="tottax") %>%
+  ggplot(aes(year, value)) + geom_line()
+
+sgtax.a <- df5
+devtools::use_data(sgtax.a, overwrite=TRUE)
+
 
 
 #****************************************************************************************************
@@ -161,6 +236,8 @@ devtools::use_data(sgtax.a, overwrite=TRUE)
 # http://www2.census.gov/govs/statetax/14staxcd.txt
 # http://www2.census.gov/govs/statetax/15staxcd.txt
 
+year <- 2014
+
 getyear <- function(year) {
   yy <- str_sub(as.character(year), 3, 4)
   url <- paste0("http://www2.census.gov/govs/statetax/", yy, "staxcd.txt")
@@ -185,6 +262,7 @@ saveRDS(dfl, paste0(stax_d, "sgtaxes.latest.rds"))
 
 # readRDS(paste0(stax_d, "sgtaxes.latest.rds"))
 
+dfl %>% filter(stabbr=="IN")
 
 #****************************************************************************************************
 #                1. get data from historical database ####
