@@ -1,3 +1,6 @@
+# DJB 11/16/2016 I AM NO LONGER USING THIS
+
+
 # I use annual and quarterly state personal income so often that it makes sense to
 # keep data files always at the ready - annual and quarterly
 
