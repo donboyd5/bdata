@@ -1,6 +1,6 @@
 # bdata_stateSOIdata.r
 # Don Boyd
-# 12/2/2015
+# 12/8/2016
 
 # GOAL:  create a single time-series cross-section SOI data file that has the following columns
 #   year int tax year
@@ -51,26 +51,47 @@
 #****************************************************************************************************
 #                Load packages ####
 #****************************************************************************************************
-library("ggplot2")
-library("scales") # so we can use scales with ggplot2
-library("plyr") # needed for ddply; must be loaded BEFORE dplyr
-library("reshape2")
-library("magrittr")
-library("tidyr")
-library("dplyr") # always load AFTER plyr
-options(dplyr.print_min = 60) # default is 10
-options(dplyr.print_max = 60) # default is 20
-library("knitr")
-library("lubridate")
-library("stringr")
-library("grDevices")
-library("readr")
-library("readxl")
-library("gdata")
-library("haven")
 
-library("bdata")
-library("btools")
+library("magrittr")
+library("plyr") # needed for ldply; must be loaded BEFORE dplyr
+library("tidyverse")
+options(tibble.print_max = 60, tibble.print_min = 60) # if more than 60 rows, print 60 - enough for states
+# ggplot2 tibble tidyr readr purrr dplyr
+
+library("hms") # hms, for times.
+library("stringr") # stringr, for strings.
+library("lubridate") # lubridate, for date/times.
+library("forcats") # forcats, for factors.
+library("readxl") # readxl, for .xls and .xlsx files.
+library("haven") # haven, for SPSS, SAS and Stata files.
+
+library("grDevices")
+library("knitr")
+
+library("zoo") # for rollapply
+
+library("btools") # library that I created (install from github)
+
+# library("ggplot2")
+# library("scales") # so we can use scales with ggplot2
+# library("plyr") # needed for ddply; must be loaded BEFORE dplyr
+# library("reshape2")
+# library("magrittr")
+# library("tidyr")
+# library("dplyr") # always load AFTER plyr
+# options(dplyr.print_min = 60) # default is 10
+# options(dplyr.print_max = 60) # default is 20
+# library("knitr")
+# library("lubridate")
+# library("stringr")
+# library("grDevices")
+# library("readr")
+# library("readxl")
+# library("gdata")
+# library("haven")
+# 
+# library("bdata")
+# library("btools")
 
 
 
@@ -83,13 +104,14 @@ websoidir <- "http://www.irs.gov/pub/irs-soi/"
 
 # data directories and files
 soitsd <- "D:/Data/SOI Data/Time Series/"
-soidir <- "./data-raw/soi/"
+# soidir <- "./data-raw/soi/"
+soidir <- "D:/Data/bdata_package_sourcedata/soi/"
 interim <- paste0(soidir, "IntermediateRfiles/")
 raw <- paste0(soidir, "OriginalSOIfiles/")
 
 soisfx <- "in54cm.xls" # filename suffix
 
-source("./data-raw/bdata_StateSOIdataFunctions.r")
+source("./DataConversionPrograms/bdata_StateSOIdataFunctions.r")
 
 # NOTE: for "system", command is parsed as a command plus arguments separated by spaces. So if the path to the
 # command (or an argument) contains spaces, it must be quoted e.g. by shQuote. Only double quotes are allowed on Windows
@@ -103,7 +125,23 @@ source("./data-raw/bdata_StateSOIdataFunctions.r")
 # define the income ranges used for each year
 incgrpdesc2009prior <- c("all", "<$50k", "$50k-<75k", "$75k-<100k", "$100k-<200k", "$200k+")
 incgrpdescs20102011 <- c("all", "<$1", "$1-<25k", "$25k-<50k", "$50k-<75k", "$75k-<100k", "$100k-<200k", "$200k-<500k", "$500k-<1m", "$1m+")
-incgrpdescs20122013 <- c("all", "<$1", "$1-<10k", "$10k-<25k", "$25k-<50k", "$50k-<75k", "$75k-<100k", "$100k-<200k", "$200-<500k", "$500-<1m", "$1m+")
+incgrpdescs20122014 <- c("all", "<$1", "$1-<10k", "$10k-<25k", "$25k-<50k", "$50k-<75k", "$75k-<100k", "$100k-<200k", "$200-<500k", "$500-<1m", "$1m+")
+
+# tax-year-specific info
+# 2014 agi stub
+# 0 = No AGI Stub
+# 1 = ‘Under $1’
+# 2 = '$1 under $10,000'
+# 3 = '$10,000 under $25,000'
+# 4 = '$25,000 under $50,000'
+# 5 = '$50,000 under $75,000'
+# 6 = '$75,000 under $100,000'
+# 7 = '$100,000 under $200,000'
+# 8 = ‘$200,000 under $500,000’
+# 9 = ‘$500,000 under $1,000,000’
+# 10 = ‘$1,000,000 or more’	
+# https://www.irs.gov/pub/irs-soi/14in54cmcsv.csv
+
 
 
 #****************************************************************************************************
@@ -128,6 +166,7 @@ incgrpdescs20122013 <- c("all", "<$1", "$1-<10k", "$10k-<25k", "$25k-<50k", "$50
 df1 <- readRDS(file=paste0(interim, "soifromSAS_1997to2007.rds"))
 df2 <- readRDS(file=paste0(interim, "soi2004to2011.rds"))
 df3 <- readRDS(file=paste0(interim, "soi2012to2013.rds"))
+df4 <- readRDS(file=paste0(interim, "soi2014.rds"))
 
 head(df1)
 head(df2)
@@ -144,8 +183,7 @@ count(df2, item, lineno) %>% data.frame
 
 
 # First, prepare the earlier data
-vars2 <-
-"vname, year, lineno
+vars2 <- read_csv("vname, year, lineno
   nret, 2003, 1
   nret, 2004, 1
   nret, 2005, 1
@@ -269,10 +307,9 @@ vars2 <-
   taxinc, 2008, 42
   taxinc, 2009, 65
   taxinc, 2010, 65
-  taxinc, 2011, 65
-  "
+  taxinc, 2011, 65")
 vars2
-varsdf2 <- read_csv(vars2) %>% filter(!is.na(year), year!=2003) # 2003 not yet ready for prime time
+varsdf2 <- vars2 %>% filter(!is.na(year), year!=2003) # 2003 not yet ready for prime time
 varsdf2
 count(varsdf2, vname)
 
@@ -297,8 +334,7 @@ count(df2b, incgrp, year)
 
 
 # Prepare the later data
-vars3 <-
- "vname, varcsv
+vars3 <- read_csv("vname, varcsv
   nret, N1
   agi, A00100
   wages, A00200
@@ -311,9 +347,8 @@ vars3 <-
   txblpension, A01700
   txblsocsec, A02500
   itemded, A04470
-  taxinc, A04800
-  "
-varsdf3 <- read_csv(vars3) %>% filter(!is.na(vname))
+  taxinc, A04800")
+varsdf3 <- vars3 %>% filter(!is.na(vname))
 
 # get ALL of the new data, and put vname on selected items
 # put vname on df1 and only keep those vars
@@ -322,11 +357,18 @@ df3a <- df3 %>% mutate(vname=varsdf3$vname[match(variable, varsdf3$varcsv)],
   filter(!is.na(vname))
 ht(df3a)
 
+ht(df4)
+df4a <- df4 %>% mutate(vname=varsdf3$vname[match(variable, varsdf3$varcsv)],
+                       incgrp=as.character(incgrp)) %>%
+  filter(!is.na(vname))
+ht(df4a)
+
 # stack the files, examine, and save
 glimpse(df2b)
 glimpse(df3a)
+glimpse(df4a)
 keepvars <- c("year", "stabbr", "vname","incgrp", "value")
-soiall <- bind_rows(df2b, df3a) %>% select(one_of(keepvars))
+soiall <- bind_rows(df2b, df3a, df4a) %>% select(one_of(keepvars))
 glimpse(soiall)
 count(soiall, year)
 count(soiall, vname)
@@ -340,20 +382,46 @@ qplot(year, value, data=filter(soiall, vname=="netcgll", incgrp=="all", stabbr==
 devtools::use_data(soiall, overwrite=TRUE)
 
 
-
 #****************************************************************************************************
-#                Get 2012+ data PAY ATTENTION TO UNITS ####
+#                Master vnames 2012+ ####
 #****************************************************************************************************
 # first, get descriptions for the variable names
 library(XLConnect) # slow but convenient because it reads ranges
-vnames <- readWorksheetFromFile(paste0(soidir, "SOI Documentation and US Totals SOI(8).xlsx"),
-                            sheet="csvvars_masterlist", header=TRUE, region="B3:C124")
+vnames <- readWorksheetFromFile(paste0(soidir, "SOIDocumentationandUSTotalsSOI(11).xlsx"),
+                                sheet="csvvars_masterlist", header=TRUE, region="B3:C138")
 # now clean up vnames
 pattern <- "\\[[^)]*\\]" # regex pattern expression for finding text between [ and ]
 vnames <- vnames %>% filter(!is.na(vname)) %>%
   mutate(vdesc=str_trim(str_replace(vdesc, pattern, "")))
 vnames
 
+# caution: change vname ending 85330 in 2013 and earlier to ending 85530
+
+
+#****************************************************************************************************
+#                Get 2014 data PAY ATTENTION TO UNITS ####
+#****************************************************************************************************
+# get 2014
+df2014 <- read_csv(paste0(raw, "14in54cmcsv.csv"))
+glimpse(df2014) # good, all but first are numeric
+# setNames(str_to_lower(names(.))) 
+
+incgrps <- c("all", "<$1", "$1-<10k", "$10k-<25k", "$25k-<50k", "$50k-<75k",
+             "$75k-<100k", "$100k-<200k", "$200k-<500k", "$500k-<1m", "$1m+")
+dfl <- df2014 %>% rename(agi_stub=AGI_STUB) %>%
+  mutate(year=as.integer(2014)) %>%
+  rename(stabbr=STATE) %>%
+  gather(variable, value, -year, -stabbr, -agi_stub) %>%
+  mutate(vdesc=vnames$vdesc[match(variable, vnames$vname)],
+         incgrp=factor(agi_stub, levels=0:10, labels=incgrps)) %>%
+  select(year, stabbr, agi_stub, incgrp, variable, vdesc, value) %>%
+  filter(!is.na(stabbr))
+saveRDS(dfl, paste0(interim, "soi2014.rds"))
+
+
+#****************************************************************************************************
+#                Get 2012-2013 data PAY ATTENTION TO UNITS ####
+#****************************************************************************************************
 # get 2013
 df2013 <- read_excel(paste0(raw, "13in54cmcsv.xlsx"))
 warnings()
