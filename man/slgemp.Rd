@@ -7,12 +7,11 @@
 \format{Data frame with 1 row per state per level (State-local, state, local), per variable, per year.
 \describe{
 \item{stabbr}{State postal abbreviation, factor}
-\item{type}{Level of government: 1, 2, or 3, for State-local, State, or local, numeric}
-\item{typef}{Factor for level of government, "State-local", "State", or "Local", factor}
-\item{ic}{Item code as defined by Census Bureau, character}
-\item{activity}{type of activity - 49 activities, including "All", character}
-\item{vtype}{Variable type (ft.emp, ft.pay, fte.emp, tot.emp, tot.pay), character}
 \item{year}{year of data - can be March or October of year, see Census documentation, numeric}
+\item{level}{Level of government: slg, sg, lg, character}
+\item{fcode}{function code, character}
+\item{fname}{function name, character}
+\item{vtype}{Variable type (emp.ft, emp.pt, emp.tot, emp.fte, pay.ft, pay.pt, pay.tot, hrs.pt), character}
 \item{value}{# of employees in thousands or monthly pay in dollars, numeric}
 }}
 \source{

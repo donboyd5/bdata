@@ -20,7 +20,7 @@ See source code on GitHub for detailed sources.
 spop.a
 }
 \description{
-State population, annual, 1900 through 2015, from the Census Bureau. One row per state per year.
+State population, annual, 1900 through 2016, from the Census Bureau. One row per state per year.
 \cr\cr
 Wherever possible, I have used Census Bureau intercensal estimates,
 including for the decennial census years. The exceptions are 1970 and 1980, where I have not found the intercensal

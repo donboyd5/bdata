@@ -1,6 +1,6 @@
 # bdata_statepop.r
 # Don Boyd
-# 12/2/2015
+# 1/23/2017
 
 # create file with annual state population from 1900 forward
 
@@ -21,22 +21,46 @@
 # CO-EST2001-12-00.csv
 # ST-EST00INT-01.csv 2000-2010
 
-library(dplyr)
-options(dplyr.print_min = 60) # default is 10
-options(dplyr.print_max = 60) # default is 20
-library(tidyr)
-library(gdata)
-library(readr)
-library(bdata)
+# CAUTION: we do not have intercensal data for 1970, 1980 and must use decennial for those years(???)
+
+#****************************************************************************************************
+#                Libraries ####
+#****************************************************************************************************
+library("devtools")
+
+library("magrittr")
+library("plyr") # needed for ldply; must be loaded BEFORE dplyr
+library("tidyverse")
+options(tibble.print_max = 60, tibble.print_min = 60) # if more than 60 rows, print 60 - enough for states
+# ggplot2 tibble tidyr readr purrr dplyr
+
+library("hms") # hms, for times.
+library("stringr") # stringr, for strings.
+library("lubridate") # lubridate, for date/times.
+library("forcats") # forcats, for factors.
+library("readxl") # readxl, for .xls and .xlsx files.
+library("haven") # haven, for SPSS, SAS and Stata files.
+library("vctrs")
+
+library("grDevices")
+library("knitr")
+
+library("zoo") # for rollapply
+
+library("btools") # library that I created (install from github)
+library("bdata")
 
 # library(btools)
 
-
-# popdir <- paste0("./data-raw/statepop/")
+#****************************************************************************************************
+#                Globals ####
+#****************************************************************************************************
 popdir <- "D:/Data/bdata_package_sourcedata/statepop/"
 
-# CAUTION: we do not have intercensal data for 1970, 1980 and must use decennial for those years(???)
 
+#****************************************************************************************************
+#                Functions ####
+#****************************************************************************************************
 getpop <- function(fname){
   firstyear <- 1900 + as.numeric(substr(fname, 3, 4))
 
@@ -101,6 +125,10 @@ getpop <- function(fname){
   return(ab)
 }
 
+
+#****************************************************************************************************
+#                Get data ####
+#****************************************************************************************************
 pop1900 <- getpop("st0009ts") # pop for the decade beginning 1900...
 pop1910 <- getpop("st1019ts")
 pop1920 <- getpop("st2029ts")
@@ -115,70 +143,90 @@ pop1980 <- getpop("st8090ts")
 # later files have different formats
 # get 1990-2000
 fn <- "CO-EST2001-12-00.csv"
-tpop <- read.csv(paste0(popdir, fn), header=FALSE, skip=3, colClasses="character")
-names(tpop) <- c("state", "1990decennial1", as.character(1990:1999), "2000decennial2")
-tpop$state <- trim(gsub("\\s"," ",tpop$state)) # replace goofy ascii characters with spaces so we can work with state names
-tpopl <- gather(tpop, variable, value, -state)
-tpopl$stabbr <- factor(tpopl$state, levels=stcodes$stname, labels=stcodes$stabbr)
-tpopl$stabbr[tpopl$state=="USA"] <- "US"
-tpopl$year <- as.numeric(substr(tpopl$variable,1,4))
-tpopl$value <- btools::cton(tpopl$value)/1000
-tpopl <- filter(tpopl, !(is.na(value) | is.na(year)))
-tpopl$variable <- as.character(tpopl$variable)
-tpopl$esttype <- ifelse(grepl("decennial",tpopl$variable), substr(tpopl$variable,5,nchar(tpopl$variable)), "intercensal")
-count(tpopl, year)
-count(tpopl, state, stabbr)
-tpopl$state <- NULL
-head(tpopl); tail(tpopl)
-pop1990 <- tpopl
-head(pop1990)
+# use locale to read the state name - spaces are encoded differently than normal file
+# Unicode Character 'NO-BREAK SPACE' (U+00A0)  (i.e., NBSP)
+tpop <- read_csv(paste0(popdir, fn), col_names=FALSE, skip=3, locale=locale(encoding="latin1")) %>%
+  mutate(X1=str_replace_all(X1, "\\s", " "))
+# iconvlist()
+vnames <- c("stname", "1990decennial1", as.character(1990:1999), "2000decennial2")
+pop1990 <- tpop %>% setNames(vnames) %>%
+  mutate(stname=ifelse(stname=="USA", "United States", stname),
+         stabbr=stcodes$stabbr[match(stname, stcodes$stname %>% as.character)] %>% as.character) %>%
+  filter(stname %in% stcodes$stname) %>%
+  select(-stname) %>%
+  gather(variable, value, -stabbr) %>%
+  mutate(year=str_sub(variable, 1, 4) %>% as.numeric,
+         value=cton(value) / 1000,
+         esttype=str_sub(variable, 5, -1),
+         esttype=ifelse(esttype=="", "intercensal", esttype)) %>%
+  select(-variable)
+count(pop1990, esttype)
+count(pop1990, year)
+count(pop1990, stabbr)
+ht(pop1990)
+
 
 
 # get 2000-2010
 fn <- "ST-EST00INT-01.csv" # this was created Sep 2011 and is most current as of 2015-04-21
-tpop <- read.csv(paste0(popdir, fn), header=FALSE, skip=4, colClasses="character")
-names(tpop) <- c("state", "2000decennial1", as.character(2000:2009), "2010decennial2", "2010")
-
-pop2000 <- tpop %>% mutate(state=trim(gsub("\\s", " ", state)),  # replace goofy ascii characters with spaces so we can work with state names
-                        state=gsub(".", "", tpop$state, fixed=TRUE),
-                        stabbr=factor(state, levels=stcodes$stname, labels=stcodes$stabbr)) %>%
-  filter(stabbr %in% stcodes$stabbr) %>%
-  select(-state) %>%
+tpop <- read_csv(paste0(popdir, fn), col_names=FALSE, skip=4)
+names(tpop) <- c("stname", "2000decennial1", as.character(2000:2009), "2010decennial2", "2010")
+pop2000 <- tpop %>% mutate(stname=str_replace(stname, "\\.", ""),
+                        stabbr=stcodes$stabbr[match(stname, stcodes$stname %>% as.character)] %>% as.character) %>%
+  filter(stname %in% stcodes$stname) %>%
+  select(-stname) %>%
   gather(variable, value, -stabbr) %>%
-  mutate(variable=as.character(variable),
-         esttype=ifelse(grepl("decennial", variable), substr(variable, 5, nchar(variable)), "intercensal"),
-         value=btools::cton(value)/1000,
-         year=as.numeric(substr(variable, 1, 4)))  %>%
-  filter(year!=2010) %>% # drop 2010 intercensal from pop2000 since we have it in the 2010 file
+  mutate(year=str_sub(variable, 1, 4) %>% as.numeric,
+         value=cton(value) / 1000,
+         esttype=str_sub(variable, 5, -1),
+         esttype=ifelse(esttype=="", "intercensal", esttype)) %>%
   select(-variable)
 glimpse(pop2000)
+count(pop2000, esttype)
+count(pop2000, year)
+count(pop2000, stabbr)
+ht(pop2000)
 
 
-# get 2010-2014 (and beyond)...get the latest file from the web
+
+# get 2010-2016 (and beyond)...get the latest file from the web
 # url<-"http://www.census.gov/popest/data/national/totals/2013/files/NST_EST2013_ALLDATA.csv"
 # fn<-"NST_EST2011_ALLDATA.csv" #
 # tpop <- read.csv(paste0(popdir, fn), header=TRUE, skip=0, colClasses="character")
 # url <- "http://www.census.gov/popest/data/state/totals/2014/tables/NST-EST2014-01.csv"
 # tpopold <- read.csv(url, header=TRUE, skip=0, colClasses="character")
 # tpop <- read_csv(url)
+# SUMLEV,REGION,DIVISION,STATE,NAME,CENSUS2010POP,ESTIMATESBASE2010,POPESTIMATE2010,POPESTIMATE2011,POPESTIMATE2012,POPESTIMATE2013,POPESTIMATE2014,POPESTIMATE2015,POPESTIMATE2016
 
-tpop <- read_csv(paste0(popdir, "NST-EST2015-01.csv"))
-glimpse(tpop)
-names(tpop) <- c("state", "2010decennial1", "2010estbase", as.character(2010:2015))
+
+udir <- "http://www2.census.gov/programs-surveys/popest/datasets/2010-2016/national/totals/"
+ufn <- "nst-est2016-alldata.csv"
+download.file(paste0(udir, ufn), paste0(popdir, ufn), mode="wb")
+
+
+tpop <- read_csv(paste0(popdir, ufn))
+names(tpop)
+tpop2 <- tpop %>% select(1:5, starts_with("CENSUS2010"), starts_with("ESTIMATESBASE"), starts_with("POPESTIMATE")) %>%
+  mutate(stabbr=stcodes$stabbr[match(STATE, stcodes$stfips)] %>% as.character) %>%
+  filter(!(stabbr=="US" & NAME!="United States"))
+count(tpop2, stabbr, NAME)
+glimpse(tpop2)
+
+pop2010 <- tpop2 %>% select(stabbr, starts_with("CENSUS2010"), starts_with("ESTIMATESBASE"), starts_with("POPESTIMATE")) %>%
+  gather(variable, value, -stabbr) %>%
+  mutate(year=str_extract(variable, "[0-9]+") %>% as.numeric,
+         esttype=ifelse(str_detect(variable, "CENSUS"), "decennial1", NA),
+         esttype=ifelse(str_detect(variable, "POPESTIMATE"), "intercensal", esttype),
+         esttype=ifelse(str_detect(variable, "ESTIMATESBASE"), "estbase", esttype),
+         value=value / 1000)
+count(pop2010, year)  
+count(pop2010, esttype)
 # decennial1 means it is the only decennial census after the year in question
-head(tpop)
-pop2010 <- tpop %>% select(-`2010decennial1`, -`2010estbase`) %>%
-  mutate(state=gsub(".", "", state, fixed=TRUE),
-         stabbr=factor(state, levels=stcodes$stname, labels=stcodes$stabbr)) %>%
-  filter(stabbr %in% stcodes$stabbr) %>%
-  select(-state) %>%
-  gather(year, value, -stabbr) %>%
-  mutate(year=as.numeric(gsub("[[:alpha:]]", "", year)),
-         esttype="intercensal",
-         value=btools::cton(value)/1e3) # put in thousands
 head(pop2010)
 tail(pop2010)
 count(pop2010, year)
+
+pop2010 <- pop2010 %>% select(-variable) %>% filter(esttype=="intercensal")
 
 
 # combine files, finish cleaning data, save results
@@ -188,6 +236,7 @@ popall <- bind_rows(pop1900, pop1910, pop1920, pop1930, pop1940, pop1950, pop196
 glimpse(popall)
 count(popall, year)
 count(popall, stabbr)
+count(popall, esttype)
 
 
 # make final adjustments so that we have intercensal where possible, and decennial otherwise
