@@ -1,11 +1,13 @@
 # bdata_statepop.r
 # Don Boyd
-# 1/23/2017
+# 1/26/2017
 
 # create file with annual state population from 1900 forward
 
 #  Sources:
 #  http://www.census.gov/popest/  for data in general
+#  http://www2.census.gov/programs-surveys/popest/datasets/ to get straight to files
+
 #  for 2000-2010: # the data on the web ALSO are Sep 2011 so continue to use the downloaded file
 #  http://www.census.gov/popest/data/intercensal/state/tables/ST-EST00INT-01.csv now (Feb 2013) appears to be latest
 #  http://www.census.gov/popest/intercensal/state/state2010.html ST-EST00INT-01.csv 2000-2010  released Sep 2011
@@ -20,6 +22,12 @@
 #     have Apr and July for decade start year, but only Apr for start of next decade
 # CO-EST2001-12-00.csv
 # ST-EST00INT-01.csv 2000-2010
+
+# FOR SOME GOOFY REASON I named the first appearance of a decennial number in a file decennial1
+# and the 2nd appearance as decennial2
+# for example 195060 file, 1950 decennial1 would be the first and 1960 decennial2 would be 2nd
+# then in 196070 file, 1960 decennial1 would be first... so the
+# first appearance of 1960 would be decennial2 and 2nd (presumably better) would be decennial1 !!!
 
 # CAUTION: we do not have intercensal data for 1970, 1980 and must use decennial for those years(???)
 
@@ -165,12 +173,21 @@ count(pop1990, year)
 count(pop1990, stabbr)
 ht(pop1990)
 
+# See note way at start
+pop1990 %>% filter(year==1990) %>% count(esttype) # decennial1 and also intercensal for 1990
+pop1990 %>% filter(year==2000) %>% count(esttype) # decennial2 is 2000
 
 
 # get 2000-2010
-fn <- "ST-EST00INT-01.csv" # this was created Sep 2011 and is most current as of 2015-04-21
-tpop <- read_csv(paste0(popdir, fn), col_names=FALSE, skip=4)
-names(tpop) <- c("stname", "2000decennial1", as.character(2000:2009), "2010decennial2", "2010")
+ufn2000 <- "st-est00int-01.csv"  # Census APPEARS to have updated this 24-Aug-2016
+
+# RUN IF NOT DOWNLOADED BEFORE: DOWNLOAD 2000-2010 DATA ###
+udir2000 <- "http://www2.census.gov/programs-surveys/popest/tables/2000-2010/intercensal/state/"
+download.file(paste0(udir2000, ufn2000), paste0(popdir, ufn2000), mode="wb")
+# END RUN ONCE 2000 ####
+
+tpop <- read_csv(paste0(popdir, ufn2000), col_names=FALSE, skip=4)
+names(tpop) <- c("stname", "2000decennial1", as.character(2000:2009), "2010decennial2", "2010") # plain 2010 is intercensal
 pop2000 <- tpop %>% mutate(stname=str_replace(stname, "\\.", ""),
                         stabbr=stcodes$stabbr[match(stname, stcodes$stname %>% as.character)] %>% as.character) %>%
   filter(stname %in% stcodes$stname) %>%
@@ -180,31 +197,35 @@ pop2000 <- tpop %>% mutate(stname=str_replace(stname, "\\.", ""),
          value=cton(value) / 1000,
          esttype=str_sub(variable, 5, -1),
          esttype=ifelse(esttype=="", "intercensal", esttype)) %>%
-  select(-variable)
+  select(-variable) %>%
+  filter(!(year==2010 & esttype=="intercensal")) # drop 2010 intercensal as we will use that from 2010+ file
 glimpse(pop2000)
 count(pop2000, esttype)
 count(pop2000, year)
 count(pop2000, stabbr)
+pop2000 %>% filter(year==2000) %>% count(esttype)
+pop2000 %>% filter(year==2010) %>% count(esttype)
 ht(pop2000)
 
 
-
 # get 2010-2016 (and beyond)...get the latest file from the web
-# url<-"http://www.census.gov/popest/data/national/totals/2013/files/NST_EST2013_ALLDATA.csv"
-# fn<-"NST_EST2011_ALLDATA.csv" #
+# url <- "http://www.census.gov/popest/data/national/totals/2013/files/NST_EST2013_ALLDATA.csv"
+# fn <- "NST_EST2011_ALLDATA.csv" #
 # tpop <- read.csv(paste0(popdir, fn), header=TRUE, skip=0, colClasses="character")
 # url <- "http://www.census.gov/popest/data/state/totals/2014/tables/NST-EST2014-01.csv"
 # tpopold <- read.csv(url, header=TRUE, skip=0, colClasses="character")
 # tpop <- read_csv(url)
-# SUMLEV,REGION,DIVISION,STATE,NAME,CENSUS2010POP,ESTIMATESBASE2010,POPESTIMATE2010,POPESTIMATE2011,POPESTIMATE2012,POPESTIMATE2013,POPESTIMATE2014,POPESTIMATE2015,POPESTIMATE2016
+# SUMLEV,REGION,DIVISION,STATE,NAME,CENSUS2010POP,ESTIMATESBASE2010,
+# POPESTIMATE2010,POPESTIMATE2011,POPESTIMATE2012,POPESTIMATE2013,POPESTIMATE2014,POPESTIMATE2015,POPESTIMATE2016
 
+ufn2010 <- "nst-est2016-alldata.csv"
 
-udir <- "http://www2.census.gov/programs-surveys/popest/datasets/2010-2016/national/totals/"
-ufn <- "nst-est2016-alldata.csv"
-download.file(paste0(udir, ufn), paste0(popdir, ufn), mode="wb")
+# RUN IF NOT DOWNLOADED BEFORE: DOWNLOAD 2010+ DATA ###
+udir2010 <- "http://www2.census.gov/programs-surveys/popest/datasets/2010-2016/national/totals/"
+download.file(paste0(udir2010, ufn2010), paste0(popdir, ufn2010), mode="wb")
+# END RUN ONCE 2010 ####
 
-
-tpop <- read_csv(paste0(popdir, ufn))
+tpop <- read_csv(paste0(popdir, ufn2010))
 names(tpop)
 tpop2 <- tpop %>% select(1:5, starts_with("CENSUS2010"), starts_with("ESTIMATESBASE"), starts_with("POPESTIMATE")) %>%
   mutate(stabbr=stcodes$stabbr[match(STATE, stcodes$stfips)] %>% as.character) %>%
@@ -212,7 +233,7 @@ tpop2 <- tpop %>% select(1:5, starts_with("CENSUS2010"), starts_with("ESTIMATESB
 count(tpop2, stabbr, NAME)
 glimpse(tpop2)
 
-pop2010 <- tpop2 %>% select(stabbr, starts_with("CENSUS2010"), starts_with("ESTIMATESBASE"), starts_with("POPESTIMATE")) %>%
+pop2010 <- tpop2 %>% select(-c(SUMLEV, REGION, DIVISION, STATE, NAME)) %>%
   gather(variable, value, -stabbr) %>%
   mutate(year=str_extract(variable, "[0-9]+") %>% as.numeric,
          esttype=ifelse(str_detect(variable, "CENSUS"), "decennial1", NA),
@@ -227,7 +248,6 @@ tail(pop2010)
 count(pop2010, year)
 
 pop2010 <- pop2010 %>% select(-variable) %>% filter(esttype=="intercensal")
-
 
 # combine files, finish cleaning data, save results
 popall <- bind_rows(pop1900, pop1910, pop1920, pop1930, pop1940, pop1950, pop1960, pop1970, pop1980, pop1990, pop2000, pop2010) %>%

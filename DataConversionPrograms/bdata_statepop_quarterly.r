@@ -1,15 +1,29 @@
 # bdata_statepop_quarterly.r
 # Don Boyd
-# 4/20/2016
+# 1/26/2017
 
-library(dplyr)
-library(tidyr)
-library(forecast) # univariate package from Hyndman
-library(ggplot2)
-options(dplyr.print_min = 60) # default is 10
-options(dplyr.print_max = 60) # default is 20
-library(lubridate)
-library(btools)
+library("magrittr")
+library("plyr") # needed for ldply; must be loaded BEFORE dplyr
+library("tidyverse")
+options(tibble.print_max = 60, tibble.print_min = 60) # if more than 60 rows, print 60 - enough for states
+# ggplot2 tibble tidyr readr purrr dplyr
+
+library("hms") # hms, for times.
+library("stringr") # stringr, for strings.
+library("lubridate") # lubridate, for date/times.
+library("forcats") # forcats, for factors.
+library("readxl") # readxl, for .xls and .xlsx files.
+library("haven") # haven, for SPSS, SAS and Stata files.
+library("vctrs")
+
+library("grDevices")
+library("knitr")
+
+library("zoo") # for rollapply
+
+library("btools") # library that I created (install from github)
+library("bdata")
+library("forecast")
 
 # create quarterly state population data:
 #   forecast state population one year ahead, then
@@ -54,8 +68,8 @@ fqpop <- function(df){
   y1 <- min(df$year, na.rm=TRUE)
   y2 <- max(df$year, na.rm=TRUE)
   d1 <- as.data.frame(spline(df$year, df$value, xmin=y1-1, xmax=y2+1, n=4*(length(df$year)+2), method="fmm"))
-  #d<-as.data.frame(spline(df$year, df$pop, xmin=y1-1, xmax=y2+1, n=4*(length(df$year)+2), method="natural"))
-  # DO NOT USE PERIODIC METHOD!!! d<-as.data.frame(spline(df$year, df$pop, xmin=y1-1, xmax=y2+1, n=4*(length(df$year)+2), method="periodic"))
+  # d <- as.data.frame(spline(df$year, df$pop, xmin=y1-1, xmax=y2+1, n=4*(length(df$year)+2), method="natural"))
+  # DO NOT USE PERIODIC METHOD!!! d <- as.data.frame(spline(df$year, df$pop, xmin=y1-1, xmax=y2+1, n=4*(length(df$year)+2), method="periodic"))
   d <- cbind(d1, date=seq(btools::mdyfn(1, 1, y1-1), by="3 months", length.out=(y2 - y1 + 3) * 4)) %>%
     select(-x) %>%  # x is the year
     select(date, value=y)
@@ -70,7 +84,6 @@ spop.q <- fcspop %>% group_by(stabbr) %>%
   filter(year(date) <= (max(spop.a$year) + 1)) # don't go more than 1 year beyond actual data
 
 count(spop.q, date) %>% data.frame
-
 
 devtools::use_data(spop.q, overwrite=TRUE)
 
@@ -87,7 +100,7 @@ d3 %>% filter(stabbr==st, year(date)>=2000) %>% qplot(date, value, data=., colou
 glimpse(d1)
 
 #****************************************************************************************************
-#                Various checks below here ####
+#                OLD: Various checks below here ####
 #****************************************************************************************************
 ################################################################################################
 # compare annual to quarterly values
