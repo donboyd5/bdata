@@ -32,4 +32,3 @@ The data are then interpolated to quarterly using a spline function.
   spop.q
 }
 \keyword{datasets}
-

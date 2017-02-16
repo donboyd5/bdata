@@ -19,4 +19,3 @@ get state fips code from state abbreviation
 getstfips("CO")
 }
 \keyword{getstfips}
-

@@ -36,4 +36,3 @@ All numbers are as reported by the Census Bureau - no calculated values.
   spop.a
 }
 \keyword{datasets}
-

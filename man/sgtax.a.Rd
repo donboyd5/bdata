@@ -26,4 +26,3 @@ State government taxes, annual.
   sgtax.a
 }
 \keyword{datasets}
-

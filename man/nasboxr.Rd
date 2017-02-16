@@ -27,4 +27,3 @@ NASBO expenditure report data, annual.
   nasboxr
 }
 \keyword{datasets}
-

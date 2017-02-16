@@ -26,4 +26,3 @@ Peak and trough dates for recessions.
   recessions
 }
 \keyword{datasets}
-

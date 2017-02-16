@@ -26,4 +26,3 @@ Statistics of Income data for states, annual.
   soiall
 }
 \keyword{datasets}
-

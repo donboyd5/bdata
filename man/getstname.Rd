@@ -19,4 +19,3 @@ get state name from state abbreviation
 getstname("CO")
 }
 \keyword{getstname}
-

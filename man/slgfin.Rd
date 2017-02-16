@@ -30,4 +30,3 @@ Still in early stages of development.
   head(slgfin)
 }
 \keyword{datasets}
-
