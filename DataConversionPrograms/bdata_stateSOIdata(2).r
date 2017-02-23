@@ -72,27 +72,7 @@ library("zoo") # for rollapply
 
 library("btools") # library that I created (install from github)
 
-# library("ggplot2")
-# library("scales") # so we can use scales with ggplot2
-# library("plyr") # needed for ddply; must be loaded BEFORE dplyr
-# library("reshape2")
-# library("magrittr")
-# library("tidyr")
-# library("dplyr") # always load AFTER plyr
-# options(dplyr.print_min = 60) # default is 10
-# options(dplyr.print_max = 60) # default is 20
-# library("knitr")
-# library("lubridate")
-# library("stringr")
-# library("grDevices")
-# library("readr")
-# library("readxl")
-# library("gdata")
-# library("haven")
-# 
 # library("bdata")
-# library("btools")
-
 
 
 #****************************************************************************************************
@@ -174,6 +154,8 @@ count(df2, year)
 count(df2, item, lineno) %>% data.frame
 
 
+
+
 # create a unifying variable, vname, on each file
 # this is a tool to find which line numbers correspond to which variables in which years
 # tmp <- df1 %>% count(year, item, lineno) %>%
@@ -183,6 +165,8 @@ count(df2, item, lineno) %>% data.frame
 
 
 # First, prepare the earlier data
+# CAUTION: I changed irapay to iradist 2/17/2017 BUT HAVE NOT CARRIED IT THROUGH
+# ALSO 2009+ the SOI data had partnership inc, which is big - I should add this!
 vars2 <- read_csv("vname, year, lineno
   nret, 2003, 1
   nret, 2004, 1
@@ -262,14 +246,14 @@ vars2 <- read_csv("vname, year, lineno
   busprofinc, 2010, 20
   busprofinc, 2011, 20
 
-  irapay, 2004, 18
-  irapay, 2005, 18
-  irapay, 2006, 18
-  irapay, 2007, 18
-  irapay, 2008, 18
-  irapay, 2009, 24
-  irapay, 2010, 24
-  irapay, 2011, 24
+  iradist, 2004, 18
+  iradist, 2005, 18
+  iradist, 2006, 18
+  iradist, 2007, 18
+  iradist, 2008, 18
+  iradist, 2009, 24
+  iradist, 2010, 24
+  iradist, 2011, 24
 
   txblpension, 2004, 20
   txblpension, 2005, 20
@@ -983,6 +967,11 @@ soi2005$year<-2005
 soi2005$value<-ctov(soi2005$value)
 soi2005$variable<-NULL
 save(soi2005, file=paste(soidir,"soi2005",".RData",sep=""))
+
+
+#****************************************************************************************************
+#                2004 soi ####
+#****************************************************************************************************
 
 
 ######################################## read 2004 soi ##############################################
