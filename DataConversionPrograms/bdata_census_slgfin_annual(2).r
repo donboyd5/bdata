@@ -248,7 +248,7 @@ rm(df, df2, df3)
 #                ONETIME: Get recipe data frame for creating aggregates from item code data ####
 #****************************************************************************************************
 # get recipe data frame
-fn <- "SLGFinAggregationAnalysis(30).xlsx"
+fn <- "SLGFinAggregationAnalysis(31).xlsx" # broke out the property tax in version 1
 rdf <- read_excel(paste0(cslgdir, fn), sheet="recipesLong", col_names = FALSE)
 rdf[1:10, 1:ncol(rdf)]
 names(rdf) <- paste(rdf[5, ], rdf[4, ], sep=".")
@@ -462,7 +462,7 @@ iit, , T40
 capoutx.gen, General Capital Outlay,
 totx.gen, General Expenditure,
 "
-recipe <- read_csv(recipe.s) %>% mutate_each(funs(str_trim))
+recipe <- read_csv(recipe.s) %>% mutate_all(str_trim)
 recipe
 
 # put vname on file using recipe
@@ -510,6 +510,12 @@ anyDuplicated(select(stack, year, level, stabbr, aggvar)) # good no dups
 glimpse(stack)
 count(stack, year) %>% data.frame
 qplot(year, value, data=filter(stack, level==1, stabbr=="US", aggvar=="totx.gen"), geom=c("point", "line")) # units look the same
+stack %>% 
+  filter(level==1, stabbr=="US", aggvar=="proptax") %>%
+  ggplot(aes(year, value)) +
+  geom_line() +
+  geom_point()
+
 count(stack, aggvar) %>% data.frame
 count(stack, stabbr)
 count(stack, level)
