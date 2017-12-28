@@ -1,6 +1,6 @@
 # bdata_statepop.r
 # Don Boyd
-# 1/26/2017
+# 12/28/2017
 
 # create file with annual state population from 1900 forward
 
@@ -30,6 +30,7 @@
 # first appearance of 1960 would be decennial2 and 2nd (presumably better) would be decennial1 !!!
 
 # CAUTION: we do not have intercensal data for 1970, 1980 and must use decennial for those years(???)
+
 
 #****************************************************************************************************
 #                Libraries ####
@@ -218,20 +219,25 @@ ht(pop2000)
 # SUMLEV,REGION,DIVISION,STATE,NAME,CENSUS2010POP,ESTIMATESBASE2010,
 # POPESTIMATE2010,POPESTIMATE2011,POPESTIMATE2012,POPESTIMATE2013,POPESTIMATE2014,POPESTIMATE2015,POPESTIMATE2016
 
-ufn2010 <- "nst-est2016-alldata.csv"
+# ufn2010 <- "nst-est2016-alldata.csv"
+ufn2010 <- "nst-est2017-alldata.csv"
 
 # RUN IF NOT DOWNLOADED BEFORE: DOWNLOAD 2010+ DATA ###
-udir2010 <- "http://www2.census.gov/programs-surveys/popest/datasets/2010-2016/national/totals/"
+# udir2010 <- "http://www2.census.gov/programs-surveys/popest/datasets/2010-2016/national/totals/"
+udir2010 <- "https://www2.census.gov/programs-surveys/popest/datasets/2010-2017/national/totals/"
 download.file(paste0(udir2010, ufn2010), paste0(popdir, ufn2010), mode="wb")
 # END RUN ONCE 2010 ####
 
 tpop <- read_csv(paste0(popdir, ufn2010))
 names(tpop)
+glimpse(tpop)
+tpop %>% select(STATE, NAME)
 tpop2 <- tpop %>% select(1:5, starts_with("CENSUS2010"), starts_with("ESTIMATESBASE"), starts_with("POPESTIMATE")) %>%
-  mutate(stabbr=stcodes$stabbr[match(STATE, stcodes$stfips)] %>% as.character) %>%
+  mutate(stabbr=stcodes$stabbr[match(STATE, stcodes$stfips %>% as.integer)] %>% as.character) %>%
   filter(!(stabbr=="US" & NAME!="United States"))
 count(tpop2, stabbr, NAME)
 glimpse(tpop2)
+tpop2 %>% filter(stabbr=="CA")
 
 pop2010 <- tpop2 %>% select(-c(SUMLEV, REGION, DIVISION, STATE, NAME)) %>%
   gather(variable, value, -stabbr) %>%

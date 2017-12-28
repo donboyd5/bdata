@@ -1,6 +1,6 @@
 # bdata_statepop_quarterly.r
 # Don Boyd
-# 1/26/2017
+# 12/28/2017
 
 library("magrittr")
 library("plyr") # needed for ldply; must be loaded BEFORE dplyr
@@ -54,6 +54,7 @@ fcspop <- spop.a %>% filter(stabbr!="PR") %>%
   do(fcpop(.)) # takes about 2 minutes
 
 ht(fcspop)
+min(fcspop$year)
 
 st <- "CA"
 qplot(year, value, data=filter(fcspop, stabbr==st & year>=2000), geom=c("point","line")) # inspect a few states
@@ -81,7 +82,8 @@ fqpop <- function(df){
 
 spop.q <- fcspop %>% group_by(stabbr) %>%
   do(fqpop(.)) %>%
-  filter(year(date) <= (max(spop.a$year) + 1)) # don't go more than 1 year beyond actual data
+  filter(year(date)>=1900,
+         year(date) <= (max(spop.a$year) + 1)) # don't go more than 1 year beyond actual data
 
 count(spop.q, date) %>% data.frame
 
@@ -94,10 +96,12 @@ d1 <- spop.a %>% mutate(date=as.Date(paste(year, 7, 1, sep="-")), type="annual")
 d2 <- spop.q %>% mutate(type="quarterly")
 d3 <- bind_rows(d1, d2)
 
-st <- "IL"
+st <- "NJ"
 d3 %>% filter(stabbr==st, year(date)>=2000) %>% qplot(date, value, data=., colour=type, geom=c("point", "line"), main=st)
 
 glimpse(d1)
+
+tmp <- d3 %>% filter(stabbr==st, year(date)>=2000)
 
 #****************************************************************************************************
 #                OLD: Various checks below here ####
