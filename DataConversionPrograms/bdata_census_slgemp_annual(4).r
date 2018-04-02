@@ -1,4 +1,4 @@
-# 12/17/2016
+# 4/2/2018
 
 
 #****************************************************************************************************
@@ -315,10 +315,10 @@ getempurl <- function(year, level){
 getempurl(2015, "slg")
 
 getemp <- function(year, level){
-  download.file(getempurl(year, level), paste0(affd, fnpre(year, level), ".zip"), mode="wb")
+  download.file(getempurl(year, level), paste0(d2013plus, fnpre(year, level), ".zip"), mode="wb")
 }
 
-for(year in 2013:2015){
+for(year in 2013:2016){
   getemp(year, "slg")
   getemp(year, "sg")
   getemp(year, "lg")
@@ -354,7 +354,7 @@ getyear <- function(year) {
                   getf(year, "lg"))
 }
 
-df <- ldply(2013:2015, getyear)
+df <- ldply(2013:2016, getyear)
 glimpse(df)
 count(df, year, level)
 count(df, stabbr)
@@ -385,6 +385,7 @@ tmp <- dall %>% filter(level=="slg", stabbr=="US", vtype=="emp.tot") %>%
   filter(!(year<=2010 & fname!="Total"),
          !(year %in% 2011:2012 & fcode!="000"),
          !(year>2012 & fcode!="1000"))
+tmp
 # good, units appear to be the same across the 3 sets of years
   
 comment(dall) <- "Survey month: 1957 APR; 1962-1995 OCT; 1997-2010 MAR"
@@ -481,10 +482,13 @@ glimpse(dall5)
 
 slgemp <- dall5 %>% gather(vtype, value, -stabbr, -year, -level, -fcode, -fname)
 glimpse(slgemp)
+slgemp %>%
+  group_by(year) %>% 
+  summarise(n=n(), n.na=sum(is.na(value)))
+
+
 comment(slgemp) <- comment(dall)
 comment(slgemp)
 use_data(slgemp, overwrite = TRUE)
-
-
 
 
