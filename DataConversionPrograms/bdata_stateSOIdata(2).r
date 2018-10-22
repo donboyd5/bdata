@@ -1,6 +1,6 @@
 # bdata_stateSOIdata.r
 # Don Boyd
-# 12/8/2016
+# 10/22/2018
 
 # GOAL:  create a single time-series cross-section SOI data file that has the following columns
 #   year int tax year
@@ -121,6 +121,7 @@ incgrpdescs20122014 <- c("all", "<$1", "$1-<10k", "$10k-<25k", "$25k-<50k", "$50
 # 9 = ‘$500,000 under $1,000,000’
 # 10 = ‘$1,000,000 or more’	
 # https://www.irs.gov/pub/irs-soi/14in54cmcsv.csv
+# still good in 2016
 
 
 
@@ -147,6 +148,8 @@ df1 <- readRDS(file=paste0(interim, "soifromSAS_1997to2007.rds"))
 df2 <- readRDS(file=paste0(interim, "soi2004to2011.rds"))
 df3 <- readRDS(file=paste0(interim, "soi2012to2013.rds"))
 df4 <- readRDS(file=paste0(interim, "soi2014.rds"))
+df5 <- readRDS(file=paste0(interim, "soi2015.rds"))
+df6 <- readRDS(file=paste0(interim, "soi2016.rds"))
 
 head(df1)
 head(df2)
@@ -342,44 +345,117 @@ df3a <- df3 %>% mutate(vname=varsdf3$vname[match(variable, varsdf3$varcsv)],
 ht(df3a)
 
 ht(df4)
-df4a <- df4 %>% mutate(vname=varsdf3$vname[match(variable, varsdf3$varcsv)],
-                       incgrp=as.character(incgrp)) %>%
+df4a <- df4 %>% 
+  mutate(vname=varsdf3$vname[match(variable, varsdf3$varcsv)],
+         incgrp=as.character(incgrp)) %>%
   filter(!is.na(vname))
 ht(df4a)
+
+ht(df5)
+df5a <- df5 %>% 
+  mutate(vname=varsdf3$vname[match(variable, varsdf3$varcsv)],
+         incgrp=as.character(incgrp)) %>%
+  filter(!is.na(vname))
+ht(df5a)
+
+ht(df6)
+df6a <- df6 %>% 
+  mutate(vname=varsdf3$vname[match(variable, varsdf3$varcsv)],
+         incgrp=as.character(incgrp)) %>%
+  filter(!is.na(vname))
+ht(df6a)
 
 # stack the files, examine, and save
 glimpse(df2b)
 glimpse(df3a)
 glimpse(df4a)
+glimpse(df5a)
+glimpse(df6a)
 keepvars <- c("year", "stabbr", "vname","incgrp", "value")
-soiall <- bind_rows(df2b, df3a, df4a) %>% select(one_of(keepvars))
+soiall <- bind_rows(df2b, df3a, df4a, df5a, df6a) %>%
+  select(one_of(keepvars))
 glimpse(soiall)
 count(soiall, year)
 count(soiall, vname)
 count(soiall, stabbr)
 count(soiall, incgrp)
-count(soiall, incgrp, year) %>% spread(year, n)
-qplot(year, value, data=filter(soiall, vname=="netcgll", incgrp=="all", stabbr=="US"), geom=c("point", "line"))
+count(soiall, incgrp, year) %>% 
+  spread(year, n)
+
+soiall %>%
+  filter(vname=="netcgll", incgrp=="all", stabbr=="US") %>%
+  ggplot(aes(year, value)) +
+  geom_point() +
+  geom_line()
 
 # saveRDS(soiall, file=paste0("./data/", "soiall.rds"))
 # save the data for purposes of the package ####
-devtools::use_data(soiall, overwrite=TRUE)
+usethis::use_data(soiall, overwrite=TRUE)
 
 
 #****************************************************************************************************
 #                Master vnames 2012+ ####
 #****************************************************************************************************
 # first, get descriptions for the variable names
-library(XLConnect) # slow but convenient because it reads ranges
-vnames <- readWorksheetFromFile(paste0(soidir, "SOIDocumentationandUSTotalsSOI(11).xlsx"),
-                                sheet="csvvars_masterlist", header=TRUE, region="B3:C138")
+# library(XLConnect) # slow but convenient because it reads ranges
+# vnames <- readWorksheetFromFile(paste0(soidir, "SOIDocumentationandUSTotalsSOI(11).xlsx"),
+#                                 sheet="csvvars_masterlist", header=TRUE, region="B3:C138")
+
+vnames <- read_excel(paste0(soidir, "SOIDocumentationandUSTotalsSOI(11).xlsx"),
+                                sheet="csvvars_masterlist", col_names =TRUE, range="B3:C138")
+
 # now clean up vnames
 pattern <- "\\[[^)]*\\]" # regex pattern expression for finding text between [ and ]
-vnames <- vnames %>% filter(!is.na(vname)) %>%
+vnames <- vnames %>% 
+  filter(!is.na(vname)) %>%
   mutate(vdesc=str_trim(str_replace(vdesc, pattern, "")))
 vnames
 
 # caution: change vname ending 85330 in 2013 and earlier to ending 85530
+
+
+#****************************************************************************************************
+#                Get 2016 data PAY ATTENTION TO UNITS ####
+#****************************************************************************************************
+# https://www.irs.gov/pub/irs-soi/16in54cmcsv.csv
+download.file("https://www.irs.gov/pub/irs-soi/16in54cmcsv.csv", paste0(raw, "16in54cmcsv.csv"), mode="wb")
+df2016 <- read_csv(paste0(raw, "16in54cmcsv.csv"))
+
+incgrps <- c("all", "<$1", "$1-<10k", "$10k-<25k", "$25k-<50k", "$50k-<75k",
+             "$75k-<100k", "$100k-<200k", "$200k-<500k", "$500k-<1m", "$1m+")
+dfl <- df2016 %>% 
+  rename(agi_stub=AGI_STUB) %>%
+  mutate(year=as.integer(2016)) %>%
+  rename(stabbr=STATE) %>%
+  gather(variable, value, -year, -stabbr, -agi_stub) %>%
+  mutate(vdesc=vnames$vdesc[match(variable, vnames$vname)],
+         incgrp=factor(agi_stub, levels=0:10, labels=incgrps)) %>%
+  select(year, stabbr, agi_stub, incgrp, variable, vdesc, value) %>%
+  filter(!is.na(stabbr))
+saveRDS(dfl, paste0(interim, "soi2016.rds"))
+
+
+#****************************************************************************************************
+#                Get 2015 data PAY ATTENTION TO UNITS ####
+#****************************************************************************************************
+download.file("https://www.irs.gov/pub/irs-soi/15in54cmcsv.csv", paste0(raw, "15in54cmcsv.csv"), mode="wb")
+df2015 <- read_csv(paste0(raw, "15in54cmcsv.csv"))
+glimpse(df2015)
+
+incgrps <- c("all", "<$1", "$1-<10k", "$10k-<25k", "$25k-<50k", "$50k-<75k",
+             "$75k-<100k", "$100k-<200k", "$200k-<500k", "$500k-<1m", "$1m+")
+dfl <- df2015 %>% 
+  rename(agi_stub=AGI_STUB) %>%
+  mutate(year=as.integer(2015)) %>%
+  rename(stabbr=STATE) %>%
+  gather(variable, value, -year, -stabbr, -agi_stub) %>%
+  mutate(vdesc=vnames$vdesc[match(variable, vnames$vname)],
+         incgrp=factor(agi_stub, levels=0:10, labels=incgrps)) %>%
+  select(year, stabbr, agi_stub, incgrp, variable, vdesc, value) %>%
+  filter(!is.na(stabbr))
+saveRDS(dfl, paste0(interim, "soi2015.rds"))
+
+
 
 
 #****************************************************************************************************
