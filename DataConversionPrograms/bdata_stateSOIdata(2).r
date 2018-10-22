@@ -168,8 +168,7 @@ count(df2, item, lineno) %>% data.frame
 
 
 # First, prepare the earlier data
-# CAUTION: I changed irapay to iradist 2/17/2017 BUT HAVE NOT CARRIED IT THROUGH
-# ALSO 2009+ the SOI data had partnership inc, which is big - I should add this!
+# NOTE!!  2009+ the SOI data had partnership inc, which is big - I should add this!
 vars2 <- read_csv("vname, year, lineno
   nret, 2003, 1
   nret, 2004, 1
@@ -330,7 +329,7 @@ vars3 <- read_csv("vname, varcsv
   netcgll, A01000
   netcgllnum, N01000
   busprofinc, A00900
-  irapay, A01400
+  iradist, A01400
   txblpension, A01700
   txblsocsec, A02500
   itemded, A04470
@@ -339,8 +338,9 @@ varsdf3 <- vars3 %>% filter(!is.na(vname))
 
 # get ALL of the new data, and put vname on selected items
 # put vname on df1 and only keep those vars
-df3a <- df3 %>% mutate(vname=varsdf3$vname[match(variable, varsdf3$varcsv)],
-                       incgrp=as.character(incgrp)) %>%
+df3a <- df3 %>% 
+  mutate(vname=varsdf3$vname[match(variable, varsdf3$varcsv)],
+         incgrp=as.character(incgrp)) %>%
   filter(!is.na(vname))
 ht(df3a)
 
@@ -392,6 +392,11 @@ soiall %>%
 # save the data for purposes of the package ####
 usethis::use_data(soiall, overwrite=TRUE)
 
+
+
+#****************************************************************************************************
+#                !!!! REVISIT CODE BELOW ONLY AS NEEDED !!!! ####
+#****************************************************************************************************
 
 #****************************************************************************************************
 #                Master vnames 2012+ ####
