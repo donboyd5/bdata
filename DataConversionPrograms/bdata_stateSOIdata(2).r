@@ -383,7 +383,7 @@ count(soiall, incgrp, year) %>%
   spread(year, n)
 
 soiall %>%
-  filter(vname=="netcgll", incgrp=="all", stabbr=="US") %>%
+  filter(vname=="iradist", incgrp=="all", stabbr=="US") %>% # netcgll
   ggplot(aes(year, value)) +
   geom_point() +
   geom_line()
