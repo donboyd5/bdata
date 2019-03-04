@@ -1,5 +1,7 @@
 
-# 9/27/2017
+# 3/4/2019
+
+# Special60 is now: https://www.census.gov/programs-surveys/gov-finances/data/historical-data.html
 
 
 #****************************************************************************************************
@@ -152,6 +154,7 @@ get.inparens <- function(cvec) {
 
 # get.inparens(c("Monday (Mon)", "Tuesday", "Wednesday (Wed)"))
 
+
 #****************************************************************************************************
 #                download files as needed and save in a project subdirectory ####
 #****************************************************************************************************
@@ -206,7 +209,7 @@ fnamedf <- data.frame(fname=c(list.files(d35, pattern="statetypepu"),
 
 # 12/4/2015 read_fwf is broken (issue #300); workaround below adds a final junk character column that I drop
 # https://github.com/hadley/readr/issues/300
-year <- 2000
+# year <- 2000
 f <- function(year) {
   fname <- fnamedf$fname[match(year, fnamedf$year)]
   print(fname)
@@ -221,8 +224,9 @@ f <- function(year) {
   df$year <- year
   return(df)
 }
-df <- ldply(2000:2015, f)
+df <- ldply(2000:2016, f)
 ht(df)
+count(df, year)
 # df %>% filter(year==2000, stcode=="00", level==1, ic=="19A")
 
 # slight cleaning, then save
@@ -509,12 +513,13 @@ ht(stack) # note different treatment of ic = "" or NA
 anyDuplicated(select(stack, year, level, stabbr, aggvar)) # good no dups
 glimpse(stack)
 count(stack, year) %>% data.frame
-qplot(year, value, data=filter(stack, level==1, stabbr=="US", aggvar=="totx.gen"), geom=c("point", "line")) # units look the same
+
+var <- "totx.gen" # proptax totx.gen
 stack %>% 
-  filter(level==1, stabbr=="US", aggvar=="proptax") %>%
+  filter(level==1, stabbr=="US", aggvar==var, year>=2000) %>%
   ggplot(aes(year, value)) +
   geom_line() +
-  geom_point()
+  geom_point() 
 
 count(stack, aggvar) %>% data.frame
 count(stack, stabbr)
@@ -522,8 +527,9 @@ count(stack, level)
 count(stack, ic) # we have both "" and NA
 
 # ok, now finalize
-slgfin <- stack %>% mutate(levf=factor(level, levels=1:3, labels=c("State-local", "State", "Local")),
-                           ic=ifelse(ic=="", NA, ic)) %>%
+slgfin <- stack %>% 
+  mutate(levf=factor(level, levels=1:3, labels=c("State-local", "State", "Local")),
+         ic=ifelse(ic=="", NA, ic)) %>%
   select(stabbr, level, levf, aggvar, ic, year, value) %>%
   arrange(stabbr, level, levf, aggvar, ic, year)
 # check the changed vars
