@@ -3,7 +3,6 @@
 \docType{package}
 \name{bdata}
 \alias{bdata}
-\alias{bdata-package}
 \title{bdata.}
 \description{
 Data that I use regularly.

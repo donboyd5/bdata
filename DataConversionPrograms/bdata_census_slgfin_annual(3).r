@@ -1,5 +1,5 @@
 
-# 3/4/2019
+# 1/14/2020
 
 # Special60 is now: https://www.census.gov/programs-surveys/gov-finances/data/historical-data.html
 
@@ -111,22 +111,6 @@ library("btools") # library that I created (install from github)
 library("bdata")
 
 
-# library(btools)
-# library(bdata) # is it ok to use bdata when developing bdata?
-# library(devtools)
-# library(plyr)
-# library(dplyr)
-# options(dplyr.print_min = 60) # default is 10
-# options(dplyr.print_max = 60) # default is 20
-# library(ggplot2)
-# library(magrittr)
-# library(readr)
-# library(readxl)
-# library(stringr)
-# library(tidyr)
-
-
-
 #****************************************************************************************************
 #                define directories and files ####
 #****************************************************************************************************
@@ -178,11 +162,12 @@ for(yr in yrs)  {
 
 
 # get the various historical databases (note that I store these elsewhere on my computer)
-urlbase <- "http://www2.census.gov/pub/outgoing/govs/special60/"
+# Special60 is now: https://www.census.gov/programs-surveys/gov-finances/data/historical-data.html
+# https://www2.census.gov/programs-surveys/gov-finances/datasets/historical/Govt_Finances.zip
+# urlbase <- "http://www2.census.gov/pub/outgoing/govs/special60/"
+urlbase <- "https://www2.census.gov/programs-surveys/gov-finances/datasets/historical/"
 fn <- "Govt_Finances.zip" # Govt_Finances.zip; also of interest: hist_fin.zip, rex-dac.zip
 download.file(paste0(urlbase, fn), paste0(spec60, fn), mode="wb")
-
-
 
 
 #****************************************************************************************************
@@ -224,7 +209,7 @@ f <- function(year) {
   df$year <- year
   return(df)
 }
-df <- ldply(2000:2016, f)
+df <- ldply(2000:2017, f)
 ht(df)
 count(df, year)
 # df %>% filter(year==2000, stcode=="00", level==1, ic=="19A")
@@ -282,9 +267,11 @@ df2 <- df %>% mutate(recipegroup=ifelse(year<2005, "2004m", "2005p"))
 
 df3 <- inner_join(select(rdfl, -variable), df2, by=c("ic", "recipegroup")) %>%  # merge a few secs faster than inner_join but stick with ij
   group_by(stabbr, level, year, aggvar) %>%
-  summarise(value=sum(value, na.rm=TRUE))
+  summarise(value=sum(value, na.rm=TRUE)) %>%
+  ungroup
 
 count(df3, aggvar) %>% data.frame
+count(df3, year) %>% data.frame
 
 saveRDS(df3, file=paste0(d35, "finrecent_agg.rds"))
 rm(df, df2, df3)
@@ -514,7 +501,7 @@ anyDuplicated(select(stack, year, level, stabbr, aggvar)) # good no dups
 glimpse(stack)
 count(stack, year) %>% data.frame
 
-var <- "totx.gen" # proptax totx.gen
+var <- "tottax" # proptax totx.gen tottax
 stack %>% 
   filter(level==1, stabbr=="US", aggvar==var, year>=2000) %>%
   ggplot(aes(year, value)) +
