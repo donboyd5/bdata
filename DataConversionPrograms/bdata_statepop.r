@@ -272,7 +272,7 @@ spop.a <- filter(popall, esttype=="intercensal" | (year %in% c(1970, 1980) & est
   arrange(stabbr, year)
 comment(spop.a) <- c("Census pop, state and year 1900-2015, thousands, (July - except 1970 and 1980 where April decennial is used)")
 
-devtools::use_data(spop.a, overwrite=TRUE)
+usethis::use_data(spop.a, overwrite=TRUE)
 
 # ALL DONE!! ####
 

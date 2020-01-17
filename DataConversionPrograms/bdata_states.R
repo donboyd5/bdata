@@ -1,4 +1,4 @@
-# btools_states.R
+# bdata_states.R
 # Don Boyd
 # 2/16/2017
 
@@ -99,5 +99,5 @@ stcodes$beargn.name[stcodes$stabbr %in% c("US")] <- "United States"
 
 stcodes
 
-devtools::use_data(stcodes, overwrite=TRUE)
+usethis::use_data(stcodes, overwrite=TRUE)
 

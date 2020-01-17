@@ -87,7 +87,7 @@ spop.q <- fcspop %>% group_by(stabbr) %>%
 
 count(spop.q, date) %>% data.frame
 
-devtools::use_data(spop.q, overwrite=TRUE)
+usethis::use_data(spop.q, overwrite=TRUE)
 
 
 glimpse(spop.a)

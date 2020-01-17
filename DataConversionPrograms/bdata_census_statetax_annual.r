@@ -350,5 +350,5 @@ dfall3 %>%
 sgtax.a <- dfall3
 count(sgtax.a, ic, vname, variable)
 
-devtools::use_data(sgtax.a, overwrite=TRUE)
+usethis::use_data(sgtax.a, overwrite=TRUE)
 

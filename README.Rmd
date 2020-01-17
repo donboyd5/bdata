@@ -56,6 +56,8 @@ This package contains several data files that I use frequently. I will try to up
 
 * `stcodes`: state codes - state postal abbreviation, FIPS code, Census code, state name, BEA region abbreviation, BEA region name
 
+* `statemap_labels`: longitude and latitude points that are appropriate for centering state abbreviation or state name labels on a U.S. map created by usmap::us_map()
+
 ## How to install
 
 Install bdata from github with:

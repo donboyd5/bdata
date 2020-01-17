@@ -82,7 +82,7 @@ count(df2, geotype)
 df2 %>% filter(geotype=="state")
 
 landarea <- df2
-devtools::use_data(landarea, overwrite = TRUE)
+usethis::use_data(landarea, overwrite = TRUE)
 
 
 
