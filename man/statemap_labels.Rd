@@ -30,6 +30,9 @@ It is difficult to determine algorithmically precisely where these points should
 or simple midpoints of a state's longitude and latitude are not always best. Good labeling points
 have been developed in the package usmap. This data frame uses those points.
 
+Having the data points in a separate data frame allows them to be used in ways beyond those built
+into the package usmap.
+
 Includes 50 states and DC. Alaska and Hawaii are in the lower left corner of the map and the labels
 are placed there.
 }
@@ -38,8 +41,8 @@ are placed there.
   
   # check how the labeling looks on a U.S. map
   p <- ggplot(data = usmap::us_map(), aes(x = x, y = y)) +
-  geom_polygon(aes(group=group), fill="white", color = "gray90", size = 0.1, na.rm=TRUE) +
-  coord_equal()
+    geom_polygon(aes(group=group), fill="white", color = "gray90", size = 0.1, na.rm=TRUE) +
+    coord_equal()
   p
   
   p + geom_text(data = statemap_labels, aes(x, y, label = stabbr), size = 2)
