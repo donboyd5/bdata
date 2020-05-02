@@ -2,4 +2,5 @@
 .Rhistory
 .RData
 ./data_raw/
+./data_intermediate/
 
