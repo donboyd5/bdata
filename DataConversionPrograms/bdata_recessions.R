@@ -1,21 +1,28 @@
 # bdata_recessions.r
 # Don Boyd
-# 4/29/2015
+# 5/2/2020
 
 # Run this once to create data for the package btools
 
 # bdata.r has @import dplyr so that we can use dplyr and "%>%" without always using "dplyr::"
 
-library(dplyr)
+# libs ----
+library(magrittr)
+library(plyr) # needed for ldply; must be loaded BEFORE dplyr
+library(tidyverse)
+options(tibble.print_max = 60, tibble.print_min = 60) # if more than 60 rows, print 60 - enough for states
+# ggplot2 tibble tidyr readr purrr dplyr stringr forcats
+library(lubridate) # lubridate, for date/times
 
-#****************************************************************************************************
-#
-#                set up recession dates for indexing and for recession bands on graphs ####
-#
-#****************************************************************************************************
+library(btools)
+
+
+# set up recession dates for indexing and for recession bands on graphs ----
+
 # data frame to be used for recession bands in graphs, etc.
 # do NOT put spaces between names or they will have to be trimmed
-recstring <- "peak,trough
+recessions <- read_csv(
+ "peak, trough
   1857-06-01, 1858-12-01
   1860-10-01, 1861-06-01
   1865-04-01, 1867-12-01
@@ -48,16 +55,21 @@ recstring <- "peak,trough
   1981-07-01, 1982-11-01
   1990-07-01, 1991-03-01
   2001-03-01, 2001-11-01
-  2007-12-01, 2009-06-01"
-recessions <- readr::read_csv(recstring)
-names(recessions) <- gdata::trim(names(recessions)) # just to be sure
+  2007-12-01, 2009-06-01",
+ col_types="DD")
+ht(recessions)
 
-recessions <- recessions %>% mutate_each(funs(as.Date(lubridate::ymd(gdata::trim(.))))) %>%
-  mutate(year=lubridate::year(peak),
-         rqsd=btools::fdoq(peak), # first date of quarter in which recession started
-         rqed=btools::fdoq(trough)) # first date of quarter in which recession ended
+recessions <- recessions %>% 
+  mutate(rec_year=lubridate::year(peak),
+         peak_decimal=decimal_date(peak),
+         trough_decimal=decimal_date(trough),
+         # first date of quarter in which recession started and ended
+         peak_quarter=btools::fdoq(peak), 
+         trough_quarter=btools::fdoq(trough)) %>%
+  select(rec_year, peak, trough, peak_decimal, trough_decimal, peak_quarter, trough_quarter)
+recessions
 
-devtools::use_data(recessions, overwrite=TRUE)
+usethis::use_data(recessions, overwrite=TRUE)
 
 # saveRDS(recessions, "./data/recessions.rds")  # this file format not allowed in packages
 # save(recessions, file="./data/recessions.rda")

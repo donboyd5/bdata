@@ -1,4 +1,20 @@
-# Create a data file with tax revenue in $ thousands, by state, year, and type of tax.
+
+# code folding ----
+# alt-o, shift-alt-o
+# alt-l, shift-alt-l
+# alt-r
+
+# notes ----
+# Create sgtax.a data file with tax revenue in $ thousands, by state, year, and type of tax.
+
+# tibble [91,738 x 6] (S3: tbl_df/tbl/data.frame)
+# $ stabbr  : chr [1:91738] "US" "US" "US" "US" ...
+# $ year    : int [1:91738] 1942 1942 1942 1942 1942 1942 1942 1942 1942 1942 ...
+# $ ic      : chr [1:91738] "T00" "T01" "T09" "T10" ...
+# $ vname   : chr [1:91738] "tottax" "proptax" "gst" "abt" ...
+# $ value   : num [1:91738] 3903386 264343 632286 256618 113198 ...
+# $ variable: chr [1:91738] "Total Taxes (T00)"
+
 
 # Steps:
 #   1. Get historical database 1902-2010
@@ -12,39 +28,166 @@
 #****************************************************************************************************
 #                Libraries ####
 #****************************************************************************************************
-library("magrittr")
-library("plyr") # needed for ldply; must be loaded BEFORE dplyr
-library("tidyverse")
+library(magrittr)
+library(plyr) # needed for ldply; must be loaded BEFORE dplyr
+library(tidyverse)
 options(tibble.print_max = 60, tibble.print_min = 60) # if more than 60 rows, print 60 - enough for states
 # ggplot2 tibble tidyr readr purrr dplyr
 
-library("scales")
-library("hms") # hms, for times.
-library("stringr") # stringr, for strings.
-library("lubridate") # lubridate, for date/times.
-library("forcats") # forcats, for factors.
-library("readxl") # readxl, for .xls and .xlsx files.
-library("haven") # haven, for SPSS, SAS and Stata files.
-library("vctrs")
-library("precis")
+library(scales)
+library(hms) # hms, for times.
+library(stringr) # stringr, for strings.
+library(lubridate) # lubridate, for date/times.
+library(forcats) # forcats, for factors.
+library(readxl) # readxl, for .xls and .xlsx files.
+library(haven) # haven, for SPSS, SAS and Stata files.
+library(vctrs)
+library(precis)
 
-library("grDevices")
-library("knitr")
+library(grDevices)
+library(knitr)
 
-library("zoo") # for rollapply
+library(zoo) # for rollapply
 
-library("btools")
-library("bdata") # so we have stcodes
-
-# library(gdata) # for trim
+library(btools)
+library(bdata) # so we have stcodes
 
 
 #****************************************************************************************************
-#                Globals ####
+# Globals ####
 #****************************************************************************************************
 stax_d <- "D:/Data/CensusFinanceData/StateTax/"
 stax_db <- paste0(stax_d, "HistoricalDB/")
 
+
+# Get latest complete historical file from Census ----
+fnz <- "STC_Historical_2019.zip"
+fnx <- "STC_Historical_DB (2019).xls"
+urlbase <- "https://www2.census.gov/programs-surveys/stc/datasets/historical/"
+
+download.file(paste0(urlbase, fnz), here::here("data_raw", fnz), mode="wb")
+
+
+# Clean the historical data ----
+# readxl doesn't currently allow us to read directly with unz, so best to unzip the required file
+tempd <- tempdir()
+unzip(zipfile=here::here("data_raw", fnz), files = fnx, exdir = tempd)
+
+df <- read_excel(paste0(tempd, "/", fnx), col_types="text")
+glimpse(df)
+count(df, State, Name) # 54: 50 states, US, AK and HI exhibits (caution!), plus one NA
+df %>% filter(is.na(State)) # the NA is just the first row, which has code descriptions
+# looks like we can safely drop the fips code
+df %>% filter(str_detect(Name, coll("exhibit", ignore_case = TRUE))) # 1955-1959
+# let's drop the exhibit codes for AK and HI
+df %>% 
+  mutate(fyemonth=str_sub(`FY Ending Date`, 1, 2) %>% as.numeric) %>%
+  group_by(fyemonth) %>%
+  summarise(n=n())
+
+codesdf <- tibble(item=names(df)[5:ncol(df)],
+                  desc=df[1, 5:ncol(df)] %>% as.character()) %>%
+  mutate(itemsort=row_number())
+codesdf
+
+dfl <- df %>%
+  rename(year=Year, stfips=State, stname=Name, fye=`FY Ending Date`) %>%
+  filter(row_number() > 1) %>%
+  filter(!str_detect(stname, coll("exhibit", ignore_case = TRUE))) %>%
+  mutate(stabbr=str_sub(stname, 1, 2)) %>%
+  select(-stfips, -stname, -fye) %>% # dropping fye, can always come back and get it if important
+  # now CAREFULLY convert columns to numeric 
+  mutate_at(vars(-c(year, stabbr)), list(~ifelse(. == "-11111", NA_character_, .))) %>%
+  mutate_at(vars(-c(year, stabbr)), list(parse_number)) %>%
+  pivot_longer(-c(year, stabbr), names_to = "item") %>%
+  filter(!is.na(value)) %>%
+  left_join(codesdf, by="item")
+dfl
+summary(dfl)
+dfl %>%
+  filter(value < 0) # looks plausible
+# year stabbr item  value desc                     
+# <dbl> <chr>  <chr> <dbl> <chr>                    
+#   1  2014 OH     T41    -118 Corp Net Income Tax (T41)
+# 2  2014 WI     T50     -77 Death and Gift Tax (T50)
+d <- count(dfl, year)
+d
+
+# check item codes
+
+yrs <- dfl$year %>% unique %>% sort
+
+totcounts <- dfl %>%
+  filter(item=="C105") %>%
+  group_by(year) %>%
+  summarise(n=n()) %>%
+  right_join(tibble(year=yrs)) %>% # this allows us to check for missing years
+  arrange(year)
+ht(totcounts, 30) # hmmm... only 1 for 2015, and 0 for 2014 and 2016
+totcounts %>% filter(year %in% 1967:1987)
+# let's fix totals by finding out which elements add to totals
+
+uscheck <- dfl %>%
+  filter(stabbr=="US", (str_sub(item, 1, 1) == "T") | item=="C105") %>%
+  mutate(rtype=ifelse(item=="C105", "total", "detail")) %>%
+  group_by(stabbr, year, rtype) %>%
+  summarise(value=sum(value)) %>%
+  pivot_wider(names_from = rtype) %>%
+  mutate(pdiff= detail / total * 100 - 100) %>%
+  right_join(tibble(year=yrs)) %>%
+  arrange(year)
+uscheck
+# 1902-1950 is off 8%+, others are all ~ 0.1% or less
+
+dfl %>% filter(stabbr=="US", year==1913) # ok, we should not drop the "C" item subtotals
+dfl %>% filter(stabbr=="US", year==2015)
+
+# do calc totals all years so we can use as a check
+calc_totals <- dfl %>%
+  filter(str_sub(item, 1, 1) == "T") %>%
+  group_by(year, stabbr) %>%
+  summarise(value=sum(value, na.rm=TRUE)) %>%
+  mutate(item="calc", desc="Total Taxes (calc)", itemsort=99) %>%
+  ungroup
+
+dfall <- bind_rows(dfl, calc_totals)
+
+# compare
+dfall %>%
+  filter(item %in% c("C105", "calc")) %>%
+  select(-desc, -itemsort) %>%
+  pivot_wider(names_from = item) %>%
+  mutate(diff=calc - C105,
+         pdiff=diff / C105 * 100) %>%
+  filter(year >= 1970) %>%
+  arrange(-abs(pdiff)) # a few not great ones but most are good
+
+# create T00 which we will use as the best total
+T00 <- dfall %>%
+  filter(item %in% c("C105", "calc")) %>%
+  select(-desc, -itemsort) %>%
+  pivot_wider(names_from = item)
+T00 %>% filter(is.na(C105))
+
+# are we ever missing the US??
+stcheck <- dfall %>%
+  mutate(type=case_when(stabbr=="US" ~ "US",
+                        stabbr %in% state.abb ~ "state",
+                        TRUE ~ "other")) %>%
+  group_by(year, type) %>%
+  summarise(n=n()) %>%
+  pivot_wider(names_from = type, values_from = n)
+
+# great -- take a final look, and save
+sgtax.a <- dfl %>%
+  arrange(year, stabbr, itemsort)
+glimpse(sgtax.a)
+summary(sgtax.a)  
+
+usethis::use_data(sgtax.a, overwrite=TRUE)
+
+
+# OLD BELOW HERE ----
 
 #****************************************************************************************************
 #                Map item codes to variable names ####

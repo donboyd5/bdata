@@ -4,14 +4,16 @@
 \name{statemap_labels}
 \alias{statemap_labels}
 \title{State map label longitude and latitude points.}
-\format{Data frame with 1 row per state per state.
+\format{
+Data frame with 1 row per state per state.
 \describe{
 \item{x}{Longitude, numeric}
 \item{y}{Latitude, numeric}
 \item{fips}{State FIPS code, character}
 \item{stabbr}{State postal abbreviation, character}
 \item{stname}{State name, character}
-}}
+}
+}
 \source{
 usmap package developed by Paolo Di Lorenzo (see https://dilorenzo.pl/pkgs/usmap/). The GitHub
 package page is https://github.com/pdil/usmap and the specific file location is 

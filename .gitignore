@@ -1,8 +1,5 @@
 .Rproj.user
 .Rhistory
 .RData
-./data_raw/census_sgtax_annual/
-./data_raw/census_slgemp_annual/
-./data_raw/census_slgfin_annual/
-./data_raw/soi/
-./data_raw/statepop/
+./data_raw/
+

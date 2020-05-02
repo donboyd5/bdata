@@ -4,7 +4,8 @@
 \name{stcodes}
 \alias{stcodes}
 \title{State codes and names.}
-\format{Data frame with 1 row per entity
+\format{
+Data frame with 1 row per entity
 \describe{
 \item{stabbr}{State postal abbreviation, character}
 \item{stfips}{State 2-digit FIPS code (leading zero for codes < 10), character}
@@ -12,7 +13,8 @@
 \item{stname}{State name, character}
 \item{beargn}{My abbreviation for the BEA region for the state, character}
 \item{beargn.name}{Official Bureau of Economic Analysis region name, character}
-}}
+}
+}
 \source{
 Various
 }

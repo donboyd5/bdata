@@ -4,7 +4,8 @@
 \name{slgemp}
 \alias{slgemp}
 \title{State and local government employment.}
-\format{Data frame with 1 row per state per level (State-local, state, local), per variable, per year.
+\format{
+Data frame with 1 row per state per level (State-local, state, local), per variable, per year.
 \describe{
 \item{stabbr}{State postal abbreviation, factor}
 \item{year}{year of data - can be March or October of year, see Census documentation, numeric}
@@ -13,7 +14,8 @@
 \item{fname}{function name, character}
 \item{vtype}{Variable type (emp.ft, emp.pt, emp.tot, emp.fte, pay.ft, pay.pt, pay.tot, hrs.pt), character}
 \item{value}{# of employees in thousands or monthly pay in dollars, numeric}
-}}
+}
+}
 \source{
 Bureau of the Census. Primarily http://www.census.gov/govs/apes/historical_data.html for
 recent history, and http://www2.census.gov/pub/outgoing/govs/special60/ for older history.

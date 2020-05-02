@@ -37,27 +37,27 @@
 #****************************************************************************************************
 library("devtools")
 
-library("magrittr")
-library("plyr") # needed for ldply; must be loaded BEFORE dplyr
-library("tidyverse")
+library(magrittr)
+library(plyr) # needed for ldply; must be loaded BEFORE dplyr
+library(tidyverse)
 options(tibble.print_max = 60, tibble.print_min = 60) # if more than 60 rows, print 60 - enough for states
-# ggplot2 tibble tidyr readr purrr dplyr
+# ggplot2 tibble tidyr readr purrr dplyr stringr forcats
+library(lubridate) # lubridate, for date/times
 
-library("hms") # hms, for times.
-library("stringr") # stringr, for strings.
-library("lubridate") # lubridate, for date/times.
-library("forcats") # forcats, for factors.
-library("readxl") # readxl, for .xls and .xlsx files.
-library("haven") # haven, for SPSS, SAS and Stata files.
-library("vctrs")
+library(btools) # library that I created (install from github)
+library(bdata)
 
-library("grDevices")
-library("knitr")
+library(readxl) # readxl, for .xls and .xlsx files.
+library(haven) # haven, for SPSS, SAS and Stata files.
+library(vctrs)
 
-library("zoo") # for rollapply
+library(grDevices)
+library(knitr)
 
-library("btools") # library that I created (install from github)
-library("bdata")
+library(zoo) # for rollapply
+
+
+
 
 # library(btools)
 

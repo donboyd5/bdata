@@ -4,7 +4,8 @@
 \name{slgfin}
 \alias{slgfin}
 \title{State and local government finances.}
-\format{Data frame with 1 row per state per level (State-local, state, local), per variable, per year.
+\format{
+Data frame with 1 row per state per level (State-local, state, local), per variable, per year.
 \describe{
 \item{year}{Fiscal year of data, numeric}
 \item{level}{Level of government: 1, 2, or 3, for State-local, State, or local, numeric}
@@ -13,7 +14,8 @@
 \item{aggvar}{Aggregation variable name that I created, character}
 \item{ic}{Item code as defined by Census Bureau; aggregated variables do not have item codes, numeric}
 \item{value}{Amount, $ thousands, numeric}
-}}
+}
+}
 \source{
 Bureau of the Census. Primarily http://www.census.gov/govs/local/historical_data.html for
 recent history, and http://www2.census.gov/pub/outgoing/govs/special60/ for older history.

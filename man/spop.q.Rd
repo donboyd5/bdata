@@ -4,12 +4,14 @@
 \name{spop.q}
 \alias{spop.q}
 \title{State population, quarterly}
-\format{Data frame with postal abbreviation, date, value (thousands)
+\format{
+Data frame with postal abbreviation, date, value (thousands)
 \describe{
 \item{stabbr}{State postal abbreviation, character}
 \item{date}{First day of quarter, date}
 \item{value}{State population, thousands, numeric}
-}}
+}
+}
 \source{
 Boyd forecast and interpolation of reported Census data. See source code on GitHub for details.
 }

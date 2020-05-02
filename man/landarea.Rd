@@ -4,7 +4,8 @@
 \name{landarea}
 \alias{landarea}
 \title{Census Bureau area data for the US, states, and counties.}
-\format{Data frame with 1 row per area.
+\format{
+Data frame with 1 row per area.
 \describe{
 \item{fips}{fips code, character}
 \item{stabbr}{state abbreviation, character}
@@ -17,7 +18,8 @@
 \item{landarea}{land area, square miles, numeric}
 \item{popden}{population density, numeric}
 \item{housden}{housing density, numeric}
-}}
+}
+}
 \source{
 Bureau of the Census
 }

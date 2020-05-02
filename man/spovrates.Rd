@@ -4,13 +4,15 @@
 \name{spovrates}
 \alias{spovrates}
 \title{State poverty rates, annual.}
-\format{Data frame with 1 row per state per year per type of poverty rate
+\format{
+Data frame with 1 row per state per year per type of poverty rate
 \describe{
 \item{stabbr}{State postal abbreviation; character}
 \item{year}{Calendar year; numeric}
 \item{povrate}{State poverty rate as a percentage; numeric}
 \item{type}{Data source: cps, acs, saipe, or best; character}
-}}
+}
+}
 \source{
 Bureau of the Census: cps (hstpov21.xls); acs (American FactFinder downloaded files); saipe (API).
 }

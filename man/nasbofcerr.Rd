@@ -4,7 +4,8 @@
 \name{nasbofcerr}
 \alias{nasbofcerr}
 \title{NASBO forecast error data, annual.}
-\format{Data frame with 1 row per state per year per expenditure purpose per fund type.
+\format{
+Data frame with 1 row per state per year per expenditure purpose per fund type.
 \describe{
 \item{stabbr}{State postal abbreviation, character}
 \item{year}{State fiscal year for which the forecast was made, integer}
@@ -14,7 +15,8 @@
 \item{err}{ce minus oe, $ millions}
 \item{pcterr}{err as percent of ce}
 \item{abspcterr}{absolute value of pcterr}
-}}
+}
+}
 \source{
 National Association of State Budget Officers, Fall Fiscal Survey of the States. See GitHub source code for details.
 }

@@ -4,13 +4,15 @@
 \name{spop.a}
 \alias{spop.a}
 \title{State population, annual.}
-\format{Data frame with 1 row per state per year
+\format{
+Data frame with 1 row per state per year
 \describe{
 \item{stabbr}{State postal abbreviation, character}
 \item{year}{Calendar year, numeric}
 \item{value}{State population, thousands, numeric}
 \item{esttype}{Estimate type - intercensal or decennial, character}
-}}
+}
+}
 \source{
 Bureau of the Census, http://www.census.gov/popest and various subdirectories and archives within.
 http://www.census.gov/popest/ in general

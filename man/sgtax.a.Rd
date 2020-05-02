@@ -4,7 +4,8 @@
 \name{sgtax.a}
 \alias{sgtax.a}
 \title{State government taxes, annual.}
-\format{Data frame with 1 row per state per year per variable
+\format{
+Data frame with 1 row per state per year per variable
 \describe{
 \item{stabbr}{State postal abbreviation, character}
 \item{year}{State fiscal year, numeric}
@@ -12,7 +13,8 @@
 \item{vname}{Variable name}
 \item{variable}{Variable description}
 \item{value}{State tax revenue, $ thousands, numeric}
-}}
+}
+}
 \source{
 Bureau of the Census, historical database (1902-2009) and state tax files (2010-2015). See GitHub source code for details.
 }

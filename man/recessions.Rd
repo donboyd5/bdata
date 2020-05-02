@@ -4,14 +4,18 @@
 \name{recessions}
 \alias{recessions}
 \title{Recession dates.}
-\format{Data frame with 1 row per recession
+\format{
+Data frame with 1 row per recession
 \describe{
-\item{year}{Calendar year in which recession began}
-\item{peak}{Date - first day of month in which recession began}
-\item{trough}{Date - first day of month in which recession ended}
-\item{rqsd}{Date - first day of quarter in which recession began}
-\item{rqed}{Date - first day of quarter in which recession ended}
-}}
+  \item{rec_year}{Calendar year in which recession began, numeric}
+  \item{peak}{first day of month in which recession began, date}
+  \item{trough}{first day of month in which recession ended, date}
+  \item{peak_decimal}{numeric - first day of month in which recession began, numeric}
+  \item{trough_decimal}{numeric - first day of month in which recession ended, numeric}
+  \item{peak_quarter}{first day of quarter in which recession began, date}
+  \item{trough_quarter}{first day of quarter in which recession ended, date}
+}
+}
 \source{
 National Bureau of Economic Research (NBER)
  http://www.nber.org/cycles.html
