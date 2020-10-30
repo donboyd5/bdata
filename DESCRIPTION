@@ -8,5 +8,4 @@ Depends:
 License: GPL-2
 LazyData: TRUE
 Encoding: UTF-8
-RoxygenNote: 7.1.0
-
+RoxygenNote: 7.1.1

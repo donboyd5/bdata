@@ -85,30 +85,29 @@
 #                load packages ####
 #****************************************************************************************************
 
-
-library("magrittr")
-library("plyr") # needed for ldply; must be loaded BEFORE dplyr
-library("tidyverse")
+library(magrittr)
+library(plyr) # needed for ldply; must be loaded BEFORE dplyr
+library(tidyverse)
 options(tibble.print_max = 60, tibble.print_min = 60) # if more than 60 rows, print 60 - enough for states
 # ggplot2 tibble tidyr readr purrr dplyr
 
-library("scales")
-library("hms") # hms, for times.
-library("stringr") # stringr, for strings.
-library("lubridate") # lubridate, for date/times.
-library("forcats") # forcats, for factors.
-library("readxl") # readxl, for .xls and .xlsx files.
-library("haven") # haven, for SPSS, SAS and Stata files.
-library("vctrs")
-library("precis")
+library(scales)
+library(hms) # hms, for times.
+library(stringr) # stringr, for strings.
+library(lubridate) # lubridate, for date/times.
+library(forcats) # forcats, for factors.
+library(readxl) # readxl, for .xls and .xlsx files.
+library(haven) # haven, for SPSS, SAS and Stata files.
+library(vctrs)
+library(precis)
 
-library("grDevices")
-library("knitr")
+library(grDevices)
+library(knitr)
 
-library("zoo") # for rollapply
+library(zoo) # for rollapply
 
-library("btools") # library that I created (install from github)
-library("bdata")
+library(btools) # library that I created (install from github)
+library(bdata)
 
 
 #****************************************************************************************************
@@ -209,7 +208,7 @@ f <- function(year) {
   df$year <- year
   return(df)
 }
-df <- ldply(2000:2017, f)
+df <- ldply(2000:2018, f)
 ht(df)
 count(df, year)
 # df %>% filter(year==2000, stcode=="00", level==1, ic=="19A")
@@ -228,6 +227,7 @@ df3 <- df2 %>% filter(level %in% 1:3) %>%
   arrange(stabbr, level, ic, year)
 # one last check, for duplicates
 anyDuplicated(select(df3, year, stabbr, level, ic)) # good, no dups
+count(df3, year)
 
 saveRDS(df3, file=paste0(d35, "finrecent.rds"))
 rm(df, df2, df3)
@@ -256,7 +256,7 @@ saveRDS(rdfl, paste0(d35, "rdfl.rds"))
 
 
 #****************************************************************************************************
-#                ONETIME: Create aggregates from recent item code data ####
+#                With each new year: Create aggregates from recent item code data ####
 #****************************************************************************************************
 rdfl <- readRDS(paste0(d35, "rdfl.rds"))
 
@@ -473,15 +473,17 @@ saveRDS(finhist, file=paste0(gfd, "finhist_agg.rds"))
 
 
 #****************************************************************************************************
-#                Combined file ####
+#                Combine history and recent to create final slgfin file ####
 #****************************************************************************************************
 # levf=factor(level, levels=1:3, labels=c("State-local", "State", "Local")),
 
 finhist_agg <- readRDS(file=paste0(gfd, "finhist_agg.rds"))
 finrecent_agg <- readRDS(file=paste0(d35, "finrecent_agg.rds"))
+# saveRDS(df3, file=paste0(d35, "finrecent.rds"))
 
 ht(finhist_agg)
 ht(finrecent_agg)
+summary(finrecent_agg)
 
 count(finhist_agg, aggvar)
 count(finrecent_agg, aggvar) %>% data.frame
