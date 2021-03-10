@@ -1,6 +1,6 @@
 Package: bdata
 Title: Boyd data
-Version: 0.6
+Version: 0.7
 Authors@R: "Don Boyd <donboyd5@gmail.com> [aut, cre]"
 Description: Data that I use frequently.
 Depends:
@@ -9,3 +9,5 @@ License: GPL-2
 LazyData: TRUE
 Encoding: UTF-8
 RoxygenNote: 7.1.1
+Imports: 
+    usmap

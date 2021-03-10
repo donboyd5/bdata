@@ -94,7 +94,8 @@ dfl <- df %>%
   rename(year=Year, stfips=State, stname=Name, fye=`FY Ending Date`) %>%
   filter(row_number() > 1) %>%
   filter(!str_detect(stname, coll("exhibit", ignore_case = TRUE))) %>%
-  mutate(stabbr=str_sub(stname, 1, 2)) %>%
+  mutate(year=as.integer(year),
+         stabbr=str_sub(stname, 1, 2)) %>%
   select(-stfips, -stname, -fye) %>% # dropping fye, can always come back and get it if important
   # now CAREFULLY convert columns to numeric 
   mutate_at(vars(-c(year, stabbr)), list(~ifelse(. == "-11111", NA_character_, .))) %>%

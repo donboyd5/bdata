@@ -1,5 +1,5 @@
 
-# 1/14/2020
+# Updated: 3/9/2021
 
 # Special60 is now: https://www.census.gov/programs-surveys/gov-finances/data/historical-data.html
 
@@ -11,7 +11,7 @@
 # Purpose: construct a single state-local government finance file with one record:
 #   per year
 #   per state (including DC, and US total - 52 groups), using state postal abbreviation
-#   per level of governemnt (state-local, state, local)
+#   per level of government (state-local, state, local)
 #   per variable - aggregated variable of interest, defined by me, based on Census categories
 # for as many years as possible, focusing on the most recent years first.
 
@@ -139,38 +139,86 @@ get.inparens <- function(cvec) {
 
 
 #****************************************************************************************************
-#                download files as needed and save in a project subdirectory ####
+#                download item code files as needed and save in a project subdirectory ####
 #****************************************************************************************************
+# Hard code file names and locations because census has made such a mess of them
+#*
+# https://www2.census.gov/programs-surveys/gov-finances/tables/2018/2018_Individual_Unit_File.zip
+# https://www2.census.gov/programs-surveys/gov-finances/datasets/2017/public-use-datasets/2017_individual_unit_file.zip
+# https://www2.census.gov/programs-surveys/gov-finances/datasets/2016/public-use-datasets/2016_Individual_Unit_file.zip
+# https://www2.census.gov/programs-surveys/gov-finances/datasets/2015/public-use-datasets/2015-individual-unit-file.zip
+# http://www2.census.gov/programs-surveys/gov-finances/datasets/2014/public-use-datasets/2014-individual-unit-file.zip
+# https://www2.census.gov/programs-surveys/gov-finances/tables/2013/summary-tables/2013_Individual_Unit_file.zip
+# https://www2.census.gov/programs-surveys/gov-finances/tables/2012/summary-tables/2012_Individual_Unit_file.zip
+# https://www2.census.gov/programs-surveys/gov-finances/datasets/2011/public-use-datasets/11statetypepu.zip
+# https://www2.census.gov/programs-surveys/gov-finances/datasets/2010/public-use-datasets/10statetypepu.zip
+# https://www2.census.gov/programs-surveys/gov-finances/datasets/2009/public-use-datasets/09statetypepu.zip
+# https://www2.census.gov/programs-surveys/gov-finances/datasets/2008/public-use-datasets/08statetypepu.zip
+# https://www2.census.gov/programs-surveys/gov-finances/datasets/2007/public-use-datasets/07statetypepu.zip
+
+ic_files <- tribble(
+  ~ year, ~dir, ~fn,
+  2007, "https://www2.census.gov/programs-surveys/gov-finances/datasets/2007/public-use-datasets/", "07statetypepu.zip",
+  2008, "https://www2.census.gov/programs-surveys/gov-finances/datasets/2008/public-use-datasets/", "08statetypepu.zip",
+  2009, "https://www2.census.gov/programs-surveys/gov-finances/datasets/2009/public-use-datasets/", "09statetypepu.zip",
+  2010, "https://www2.census.gov/programs-surveys/gov-finances/datasets/2010/public-use-datasets/", "10statetypepu.zip",
+  2011, "https://www2.census.gov/programs-surveys/gov-finances/datasets/2011/public-use-datasets/", "11statetypepu.zip",
+  2012, "https://www2.census.gov/programs-surveys/gov-finances/tables/2012/summary-tables/", "2012_Individual_Unit_file.zip",
+  2013, "https://www2.census.gov/programs-surveys/gov-finances/tables/2013/summary-tables/", "2013_Individual_Unit_file.zip",
+  2014, "http://www2.census.gov/programs-surveys/gov-finances/datasets/2014/public-use-datasets/", "2014-individual-unit-file.zip",
+  2015, "https://www2.census.gov/programs-surveys/gov-finances/datasets/2015/public-use-datasets/", "2015-individual-unit-file.zip",
+  2016, "https://www2.census.gov/programs-surveys/gov-finances/datasets/2016/public-use-datasets/", "2016_Individual_Unit_file.zip",
+  2017, "https://www2.census.gov/programs-surveys/gov-finances/datasets/2017/public-use-datasets/", "2017_individual_unit_file.zip",
+  2018, "https://www2.census.gov/programs-surveys/gov-finances/tables/2018/", "2018_Individual_Unit_File.zip",
+)
+ic_files
+
 # http://www2.census.gov/govs/local/00statetypepu.zip
-yrs <- 2000:2012
-yrs <- 2013:2015
 
-yr <- 2015
+yrs <- 2013:2018
+fnames <- ic_files %>% 
+  filter(year %in% yrs) %>%
+  mutate(url=paste0(dir, fn),
+         loc=paste0(d35, fn),
+         puname=paste0(str_sub(year, 3, 4), "statetypepu.txt"))
 
-for(yr in yrs)  {
-  y2 <- str_sub(yr, 3, 4)
-  if(yr %in% c(2001, 2003)) fn <- paste0(y2, "statetypepu.txt") else
-    fn <- paste0(y2, "statetypepu.zip")
-  url <- paste0("http://www2.census.gov/govs/local/", fn)
-  print(url)
-  download.file(url, paste0(d35, fn), mode="wb")
-}
+# download the files
+walk2(fnames$url, fnames$loc, function(url, loc) download.file(url, loc, mode="wb"))
+# extract JUST the 35-character public use file of interest
+walk2(fnames$loc, fnames$puname, function(loc, puname) unzip(zipfile=loc, files=puname, exdir=str_sub(d35, 1, -2)))
+
+
+
+# older approach
+# https://www2.census.gov/programs-surveys/gov-finances/datasets/2016/public-use-datasets/2016_Individual_Unit_file.zip
+# for(yr in yrs)  {
+#   y2 <- str_sub(yr, 3, 4)
+#   if(yr %in% c(2001, 2003)) fn <- paste0(y2, "statetypepu.txt") else
+#     fn <- paste0(y2, "statetypepu.zip")
+#   url <- paste0("http://www2.census.gov/govs/local/", fn)
+#   print(url)
+#   download.file(url, paste0(d35, fn), mode="wb")
+# }
 
 # Note that the 2013 data do not appear to be here!!!
 # Randy Moore, Chief of the Census Local Governments Branch, provided it directly to me by email
 
 
+#****************************************************************************************************
+#                Get historical databases ????? OLD?? ####
+#****************************************************************************************************
+
 # get the various historical databases (note that I store these elsewhere on my computer)
 # Special60 is now: https://www.census.gov/programs-surveys/gov-finances/data/historical-data.html
 # https://www2.census.gov/programs-surveys/gov-finances/datasets/historical/Govt_Finances.zip
 # urlbase <- "http://www2.census.gov/pub/outgoing/govs/special60/"
-urlbase <- "https://www2.census.gov/programs-surveys/gov-finances/datasets/historical/"
-fn <- "Govt_Finances.zip" # Govt_Finances.zip; also of interest: hist_fin.zip, rex-dac.zip
-download.file(paste0(urlbase, fn), paste0(spec60, fn), mode="wb")
+# urlbase <- "https://www2.census.gov/programs-surveys/gov-finances/datasets/historical/"
+# fn <- "Govt_Finances.zip" # Govt_Finances.zip; also of interest: hist_fin.zip, rex-dac.zip
+# download.file(paste0(urlbase, fn), paste0(spec60, fn), mode="wb")
 
 
 #****************************************************************************************************
-#                Individual year files ####
+#                Individual year files 2000 through most recent year (2018 as of 3/9/2021) ####
 #****************************************************************************************************
 # Work SLOWLY, getting only a few variables at a time
 # itemfiles <- character(13)
@@ -187,6 +235,7 @@ fnamedf <- data.frame(fname=c(list.files(d35, pattern="statetypepu"),
                                            "2002State_By_type_Summaries24.txt")) %>%
   mutate(year=2000 + ifelse(str_sub(fname, 1, 4)=="2002", 02, as.integer(str_sub(fname, 1, 2)))) %>%
   arrange(year)
+fnamedf
 
 # now read the item files
 # 2002 is a different format than the other years
@@ -208,7 +257,9 @@ f <- function(year) {
   df$year <- year
   return(df)
 }
-df <- ldply(2000:2018, f)
+# df <- ldply(2000:2018, f)
+df <- map_dfr(2000:2018, f)
+summary(df)
 ht(df)
 count(df, year)
 # df %>% filter(year==2000, stcode=="00", level==1, ic=="19A")
@@ -217,7 +268,7 @@ count(df, year)
 df2 <- df %>% mutate(stabbr=stcodes$stabbr[match(stcode, stcodes$stcen)])
 count(df2, stcode, stabbr) # note that there are both DC and US records
 # check DC and US by year
-count(df2, year, usrec=stabbr=="US") %>% spread(usrec, n) # note that there are not non-US recs in 2001, 2003
+count(df2, year, usrec=stabbr=="US") %>% spread(usrec, n) # note that there are no non-US recs in 2001, 2003
 count(df2, year, dcrec=stabbr=="DC") %>% spread(dcrec, n) # note that there are no DC recs in 2001, 2003
 count(filter(df2, stabbr!="US"), year)
 count(df2, ic) %>% data.frame
@@ -237,16 +288,32 @@ rm(df, df2, df3)
 #                ONETIME: Get recipe data frame for creating aggregates from item code data ####
 #****************************************************************************************************
 # get recipe data frame
-fn <- "SLGFinAggregationAnalysis(31).xlsx" # broke out the property tax in version 1
+# fn <- "SLGFinAggregationAnalysis(31).xlsx" # broke out the property tax in version 1
+fn <- "SLGFinAggregationAnalysis(32).xlsx" # 3/9/2021 removed A54 in 2005-plus
 rdf <- read_excel(paste0(cslgdir, fn), sheet="recipesLong", col_names = FALSE)
 rdf[1:10, 1:ncol(rdf)]
 names(rdf) <- paste(rdf[5, ], rdf[4, ], sep=".")
 
-rdfl <- rdf[-c(1:4), ] %>% gather(variable, ic) %>%
+vnames <- paste(rdf[5, ], rdf[4, ], sep="_")
+
+rdfl <- rdf %>%
+  setNames(vnames) %>%
+  filter(row_number() >= 6) %>%
+  pivot_longer(cols=everything(),
+               names_to = "variable",
+               values_to = "ic") %>%
   filter(ic !="") %>%
-  separate(variable, c("aggvar", "recipegroup"), sep=-7, remove=FALSE) %>%
-  mutate(recipegroup=gsub(".", "", recipegroup, fixed=TRUE),
-         indicator=1)
+  separate(variable, into=c("aggvar", "recipegroup"), sep="_", remove = FALSE) %>%
+  mutate(indicator=1) %>%
+  arrange(variable, ic)
+
+# rdfl <- rdf[-c(1:4), ] %>% 
+#   gather(variable, ic) %>%
+#   filter(ic !="") %>%
+#   separate(variable, c("aggvar", "recipegroup"), sep=-7, remove=FALSE) %>%
+#   mutate(recipegroup=gsub(".", "", recipegroup, fixed=TRUE),
+#          indicator=1) %>%
+#   arrange(variable, ic)
 
 ht(rdfl)
 saveRDS(rdfl, paste0(d35, "rdfl.rds"))
@@ -262,19 +329,30 @@ rdfl <- readRDS(paste0(d35, "rdfl.rds"))
 
 df <- readRDS(file=paste0(d35, "finrecent.rds"))
 
+tmp <- df %>%
+  filter(stabbr=="CA", year==2016, level==2, str_sub(ic, 1, 1)=="T")
+sum(tmp$value)
+
 # prepare the data file
-df2 <- df %>% mutate(recipegroup=ifelse(year<2005, "2004m", "2005p"))
+df2 <- df %>% 
+  mutate(recipegroup = ifelse(year < 2005, "2004m", "2005p"))
 
 df3 <- inner_join(select(rdfl, -variable), df2, by=c("ic", "recipegroup")) %>%  # merge a few secs faster than inner_join but stick with ij
   group_by(stabbr, level, year, aggvar) %>%
   summarise(value=sum(value, na.rm=TRUE)) %>%
   ungroup
 
+df3 %>%
+  filter(stabbr=="CA", year==2016, level==2, aggvar=="tottax")
+
 count(df3, aggvar) %>% data.frame
 count(df3, year) %>% data.frame
 
 saveRDS(df3, file=paste0(d35, "finrecent_agg.rds"))
 rm(df, df2, df3)
+
+# df3 %>%
+#   filter(year==2018, aggvar=="osr", level==2)
 
 
 #****************************************************************************************************
@@ -526,4 +604,5 @@ count(slgfin, level, levf)
 count(slgfin, ic)
 
 usethis::use_data(slgfin, overwrite = TRUE)
+
 

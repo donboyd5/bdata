@@ -18,6 +18,7 @@
 # This block will update the DESCRIPTION file when devtools::document() is run (or via shift-ctrl-d) ####
 # usethis::use_package("plyr")
 # usethis::use_package("dplyr")
+# usethis::use_package("ggplot")
 # usethis::use_package("lubridate")
 # usethis::use_package("magrittr")
 # # usethis::use_package("precis")
@@ -26,7 +27,11 @@
 # usethis::use_package("tibble")
 # usethis::use_package("zoo")
 
-usethis::use_package("bdata")
+# usethis::use_package("bdata")
+
+usethis::use_package("usmap")
+
+
 
 # This block (if uncommented) will update the NAMESPACE file when devtools::document() is run (or via shift-ctrl-d) ####
 

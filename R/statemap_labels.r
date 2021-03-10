@@ -29,6 +29,7 @@
 #' @examples
 #'   head(statemap_labels)
 #'   
+#'\dontrun{
 #'   # check how the labeling looks on a U.S. map
 #'   p <- ggplot(data = usmap::us_map(), aes(x = x, y = y)) +
 #'     geom_polygon(aes(group=group), fill="white", color = "gray90", size = 0.1, na.rm=TRUE) +
@@ -38,6 +39,7 @@
 #'   p + geom_text(data = statemap_labels, aes(x, y, label = stabbr), size = 2)
 #'   
 #'   p + geom_text(data = statemap_labels, aes(x, y, label = stname), size = 2)
+#'}
 #'   
 "statemap_labels"
 
