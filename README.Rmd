@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
 ```
 
 
-# btools
+# bdata
 This package contains several data files that I use frequently. I will try to update the quarterly files once each quarter, and the annual files once each year.
 
 
@@ -28,6 +28,8 @@ This package contains several data files that I use frequently. I will try to up
 * `slgemp`: state and local government employment (state-local, state, local), annual 1979-2013
 
 * `slgfin`: state and local government finances (state-local, state, local), annual - selected years 1902-2013
+
+* `sgrev`: state government revenue data, annual - pulled from the [Williamette database](https://willamette.edu/mba/research-impact/public-datasets/)
 
 
 ### Other data related to state and local government finances
