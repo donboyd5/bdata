@@ -60,7 +60,6 @@ glimpse(df)
 names(df)[1:147]
 # ID,Year4,State_Code,Type_Code,County,Name,FIPS_Code_State,FIPS_County,FIPS_Place,FIPS_Combined,FYEndDate,YearPop,SchLevCode,Population
 count(df, ID, State_Code)  # 51 includes DC but not US; Name has extraneous info
-state.
 
 stcodes <- tibble(stabbr=c(state.abb, "DC"), stfips=c(usmap::fips(state.abb), "11"))
 
@@ -100,4 +99,13 @@ usethis::use_data(sgrev, overwrite = TRUE)
 
 sgrev %>%
   filter(stabbr=="FL", year==2008, variable=="chg.gen")
+
+sgrev %>%
+  filter(stabbr=="FL", year %in% 2008:2012, variable=="osr")
+
+sgrev %>%
+  filter(stabbr=="FL", year >= 2000, variable=="osr") %>%
+  ggplot(aes(year, value)) +
+  geom_line() +
+  geom_point()
 

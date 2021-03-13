@@ -15,7 +15,9 @@ Data frame with 1 row per state per year per variable
 }
 }
 \source{
-Bureau of the Census, [second hand](https://willamette.edu/~kpierson/TheGovernmentFinanceDatabase_StateData.zip).
+Original source: Bureau of the Census, \emph{Annual Survey of State and Local Government Finances}
+Obtained from \url{https://willamette.edu/mba/research-impact/public-datasets/},
+specifically \url{https://willamette.edu/~kpierson/TheGovernmentFinanceDatabase_StateData.zip}.
 }
 \usage{
 sgrev

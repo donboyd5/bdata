@@ -2,7 +2,9 @@
 #'
 #' State government revenue, annual.
 #'
-#' @source Bureau of the Census, [second hand](https://willamette.edu/~kpierson/TheGovernmentFinanceDatabase_StateData.zip).
+#' @source Original source: Bureau of the Census, \emph{Annual Survey of State and Local Government Finances}
+#' Obtained from \url{https://willamette.edu/mba/research-impact/public-datasets/},
+#' specifically \url{https://willamette.edu/~kpierson/TheGovernmentFinanceDatabase_StateData.zip}.
 #' @format Data frame with 1 row per state per year per variable
 #' \describe{
 #' \item{stabbr}{State postal abbreviation, character}
