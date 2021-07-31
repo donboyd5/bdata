@@ -151,7 +151,7 @@ totcounts <- dfl %>%
   summarise(n=n()) %>%
   right_join(tibble(year=yrs)) %>% # this allows us to check for missing years
   arrange(year)
-ht(totcounts, 30) # hmmm... only 1 for 2015, and 0 for 2014 and 2016
+ht(totcounts, 30)
 totcounts %>% filter(year %in% 1967:1987)
 # let's fix totals by finding out which elements add to totals
 
@@ -165,6 +165,7 @@ uscheck <- dfl %>%
   right_join(tibble(year=yrs)) %>%
   arrange(year)
 uscheck
+uscheck %>% tail(30)
 # 1902-1950 is off 8%+, others are all ~ 0.1% or less
 
 dfl %>% filter(stabbr=="US", year==1913) # ok, we should not drop the "C" item subtotals
