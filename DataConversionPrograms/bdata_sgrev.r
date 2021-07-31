@@ -4,25 +4,12 @@
 # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4479543/
 # https://willamette.edu/~kpierson/TheGovernmentFinanceDatabase_AllData.zip
 
-
-
-
-
 # also consider
 # Urban SLFQS  https://state-local-finance-data.taxpolicycenter.org//pages.cfm#
-
-
-#****************************************************************************************************
-#                constants ####
-#****************************************************************************************************
-wdir <- r"(D:\Data\bdata_package_sourcedata\williamette\)"
-sgcsv <- "StateData.csv"
-
 
 #****************************************************************************************************
 #                load packages ####
 #****************************************************************************************************
-
 library(magrittr)
 library(plyr) # needed for ldply; must be loaded BEFORE dplyr
 library(tidyverse)
@@ -49,23 +36,49 @@ library(bdata)
 
 
 #****************************************************************************************************
+#                constants ####
+#****************************************************************************************************
+# https://willamette.edu/mba/research-impact/public-datasets/index.html
+# https://willamette.edu/~kpierson/TheGovernmentFinanceDatabase_AllData.zip
+wdir <- r"(D:\Data\bdata_package_sourcedata\williamette\)"
+sgcsv <- "StateData.csv"
+
+
+urlbase <- "https://willamette.edu/~kpierson/"
+fn <- "TheGovernmentFinanceDatabase_StateData.zip"
+url <- paste0(urlbase, fn)
+
+
+#****************************************************************************************************
 #                get state government data ####
 #****************************************************************************************************
+# https://willamette.edu/~kpierson/TheGovernmentFinanceDatabase_StateData.zip
+tdir <- tempdir()
 
-df <- read_csv(paste0(wdir, sgcsv))
+
+dlzip <- paste0(tdir, fn)
+
+download.file(url, dlzip, mode = "wb")
+unzip(dlzip, list=TRUE)
+unzip(dlzip, files="StateData.csv", exdir=tdir)
+
+df <- read_csv(file.path(tdir, "StateData.csv"))
 names(df)
 glimpse(df)
 # Rows: 2,200
 # Columns: 592
-names(df)[1:147]
+names(df)[1:145]
 # ID,Year4,State_Code,Type_Code,County,Name,FIPS_Code_State,FIPS_County,FIPS_Place,FIPS_Combined,FYEndDate,YearPop,SchLevCode,Population
-count(df, ID, State_Code)  # 51 includes DC but not US; Name has extraneous info
+count(df, GOVSid, FIPSid, State_Code, FIPS_Code_State, str_sub(Name, 1, 4))  # 51 includes DC but not US; Name has extraneous info
 
 stcodes <- tibble(stabbr=c(state.abb, "DC"), stfips=c(usmap::fips(state.abb), "11"))
 
 # Gen_Rev_Own_Sources
+# Total_Revenue 18
+# "General_Revenue" 20
+# Gen_Rev_Own_Sources 21 through "Misc_General_Revenue" 113  "Misc_General_Rev_NEC"  122
 df2 <- df %>%
-  select(year=Year4, FIPS_Code_State, pop=Population, 17:142) %>%
+  select(year=Year4, FIPS_Code_State, pop=Population, 18:143) %>%
   mutate(stabbr=stcodes$stabbr[match(FIPS_Code_State, stcodes$stfips)]) %>%
   select(-FIPS_Code_State) %>%
   select(stabbr, year, everything()) %>%
@@ -80,6 +93,7 @@ xwalk <- tribble(~name, ~variable,
                  "Gen_Rev_Own_Sources", "osr",
                  "Total_Taxes", "tottax",
                  "Total_Gen_Sales_Tax", "gst",
+                 "Total_Select_Sales_Tax", "selsales",
                  "Individual_Income_Tax", "iit",
                  "Corp_Net_Income_Tax", "cit",
                  "Severance_Tax", "sevtax",

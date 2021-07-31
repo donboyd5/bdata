@@ -1,4 +1,20 @@
 
+# updated: 7/31/2021
+# per https://www.census.gov/data/tables/2020/econ/stc/2020-annual.html:
+#   Census SG tax Last Revised: April 14, 2021
+
+# • To create a personal access token, call `create_github_token()`
+# • To store a token for current and future use, call `gitcreds::gitcreds_set()`
+# ℹ Read more in the 'Managing Git(Hub) Credentials' article:
+#   https://usethis.r-lib.org/articles/articles/git-credentials.html
+
+# usethis::gh_token_help()
+# gitcreds::gitcreds_set()
+
+# then, finally:
+# usethis::use_github()
+
+
 # code folding ----
 # alt-o, shift-alt-o
 # alt-l, shift-alt-l
@@ -61,11 +77,22 @@ stax_db <- paste0(stax_d, "HistoricalDB/")
 
 
 # Get latest complete historical file from Census ----
-fnz <- "STC_Historical_2019.zip"
-fnx <- "STC_Historical_DB (2019).xls"
-urlbase <- "https://www2.census.gov/programs-surveys/stc/datasets/historical/"
+# https://www.census.gov/programs-surveys/gov-finances/data/historical-data.html
+# fnz <- "STC_Historical_2019.zip"
+# fnx <- "STC_Historical_DB (2019).xls"
+fnz <- "STC_Historical_2020.zip"
+fnx <- "STC_Historical_DB (2020).xls"
 
-download.file(paste0(urlbase, fnz), here::here("data_raw", fnz), mode="wb")
+urlbase <- "https://www2.census.gov/programs-surveys/stc/datasets/historical/"
+url <- paste0(urlbase, fnz)
+
+
+dlzip <- here::here("data_raw", fnz)
+
+download.file(url, dlzip, mode = "wb")
+unzip(dlzip, list=TRUE)
+unzip(dlzip, files=fnx, exdir=here::here("data_raw"))
+
 
 
 # Clean the historical data ----
