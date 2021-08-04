@@ -153,6 +153,8 @@ count(stcodes, beargn.name, stname)
 usethis::use_data(stcodes, overwrite=TRUE)
 
 
+
+
 # notes to self ----
 # ne.cen <- c(9, 23, 25, 33, 44, 50, 34, 36, 42)
 # mw.cen <- c(17, 18, 26, 39, 55, 19, 20, 27, 29, 31, 38, 46)

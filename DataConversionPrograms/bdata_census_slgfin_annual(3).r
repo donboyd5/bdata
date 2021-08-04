@@ -1,5 +1,12 @@
 
-# Updated: 3/9/2021
+# CAUTION!: 8/4/2021, Unbelievably, the Census Bureau has updated the public use state-local unit data files for 
+# 2017-2019 to use fips codes rather than Census codes, with no apparent documentation of this change.
+# I became aware of it because it was mentioned here: 
+# https://willamette.edu/mba/research-impact/public-datasets/index.html
+
+# Code below adjusts for this by mapping fips to census for 2017 to 2019.
+
+# Updated: 8/4/2021
 
 # Special60 is now: https://www.census.gov/programs-surveys/gov-finances/data/historical-data.html
 
@@ -170,12 +177,14 @@ ic_files <- tribble(
   2016, "https://www2.census.gov/programs-surveys/gov-finances/datasets/2016/public-use-datasets/", "2016_Individual_Unit_file.zip",
   2017, "https://www2.census.gov/programs-surveys/gov-finances/datasets/2017/public-use-datasets/", "2017_individual_unit_file.zip",
   2018, "https://www2.census.gov/programs-surveys/gov-finances/tables/2018/", "2018_Individual_Unit_File.zip",
+  2019, "https://www2.census.gov/programs-surveys/gov-finances/tables/2019/", "2019_Individual_Unit_File.zip",
 )
 ic_files
 
 # http://www2.census.gov/govs/local/00statetypepu.zip
 
 yrs <- 2013:2018
+yrs <- 2017:2019
 fnames <- ic_files %>% 
   filter(year %in% yrs) %>%
   mutate(url=paste0(dir, fn),
@@ -218,7 +227,7 @@ walk2(fnames$loc, fnames$puname, function(loc, puname) unzip(zipfile=loc, files=
 
 
 #****************************************************************************************************
-#                Individual year files 2000 through most recent year (2018 as of 3/9/2021) ####
+#                Individual year files 2000 through most recent year (2019 as of 8/4/2021) ####
 #****************************************************************************************************
 # Work SLOWLY, getting only a few variables at a time
 # itemfiles <- character(13)
@@ -243,6 +252,24 @@ fnamedf
 # 12/4/2015 read_fwf is broken (issue #300); workaround below adds a final junk character column that I drop
 # https://github.com/hadley/readr/issues/300
 # year <- 2000
+
+# fix state codes!! ----
+fips_tocen <- function(fips){
+  stcodes$stcen[match(fips, stcodes$stfips)]
+}
+
+cen_tofips <- function(cen){
+  stcodes$stfips[match(cen, stcodes$stcen)]
+}
+
+cen_tostabbr <- function(cen){
+  stcodes$stabbr[match(cen, stcodes$stcen)]
+}
+
+fips_tocen(c("01", "53", "54", "55", "56", "78"))  # "01", "48", "49", "50", "51", "78"
+cen_tofips(c("01", "48", "49", "50", "51", "78"))  # "01", "53", "54", "55", "56", "78"
+stcodes
+
 f <- function(year) {
   fname <- fnamedf$fname[match(year, fnamedf$year)]
   print(fname)
@@ -252,36 +279,52 @@ f <- function(year) {
     starts <- c(1, 3, 15, 19, 30)
     ends <- c(2, 3, 17, 29, 30)
   }
-  df <- read_fwf(paste0(d35, fname), fwf_positions(starts, ends, col_names=c("stcode", "level", "ic", "value", "junk")),
-           col_types="cicdc", n_max=-1) %>% select(-junk)
-  df$year <- year
+  df <- read_fwf(paste0(d35, fname), 
+                 fwf_positions(starts, ends, 
+                               col_names=c("stcode", "level", "ic", "value", "junk")),
+                 col_types="cicdc", n_max=-1) %>% 
+    select(-junk) %>%
+    mutate(year=!!year,
+           stcode=ifelse(year >= 2017, fips_tocen(stcode), stcode),
+           stabbr=cen_tostabbr(stcode))
+  # df$year <- year
   return(df)
 }
 # df <- ldply(2000:2018, f)
-df <- map_dfr(2000:2018, f)
+df <- map_dfr(2000:2019, f)
 summary(df)
 ht(df)
 count(df, year)
+# did stcodes change - look at counts by year
+df %>%
+  group_by(year, stcode) %>%
+  summarise(n=n()) %>%
+  pivot_wider(names_from = year, values_from = n)
+
+
+
 # df %>% filter(year==2000, stcode=="00", level==1, ic=="19A")
 
 # slight cleaning, then save
-df2 <- df %>% mutate(stabbr=stcodes$stabbr[match(stcode, stcodes$stcen)])
-count(df2, stcode, stabbr) # note that there are both DC and US records
+# df2 <- df %>% mutate(stabbr=stcodes$stabbr[match(stcode, stcodes$stcen)])
+
+count(df, stcode, stabbr) # note that there are both DC and US records
+df %>% filter(year == 2019) %>% count(stcode, stabbr)  # 2019 introduces 
 # check DC and US by year
-count(df2, year, usrec=stabbr=="US") %>% spread(usrec, n) # note that there are no non-US recs in 2001, 2003
-count(df2, year, dcrec=stabbr=="DC") %>% spread(dcrec, n) # note that there are no DC recs in 2001, 2003
-count(filter(df2, stabbr!="US"), year)
-count(df2, ic) %>% data.frame
-count(df2, level, year) %>% spread(level, n)
-df3 <- df2 %>% filter(level %in% 1:3) %>%
+count(df, year, usrec=stabbr=="US") %>% spread(usrec, n) # note that there are no non-US recs in 2001, 2003
+count(df, year, dcrec=stabbr=="DC") %>% spread(dcrec, n) # note that there are no DC recs in 2001, 2003
+count(filter(df, stabbr!="US"), year)
+count(df, ic) %>% data.frame
+count(df, level, year) %>% spread(level, n)
+df2 <- df %>% filter(level %in% 1:3) %>%
   select(year, stabbr, level, ic, value) %>%
   arrange(stabbr, level, ic, year)
 # one last check, for duplicates
-anyDuplicated(select(df3, year, stabbr, level, ic)) # good, no dups
-count(df3, year)
+anyDuplicated(select(df2, year, stabbr, level, ic)) # good, no dups
+count(df, year)
 
-saveRDS(df3, file=paste0(d35, "finrecent.rds"))
-rm(df, df2, df3)
+saveRDS(df2, file=paste0(d35, "finrecent.rds"))
+rm(df, df2)
 
 
 #****************************************************************************************************
@@ -325,7 +368,7 @@ saveRDS(rdfl, paste0(d35, "rdfl.rds"))
 #****************************************************************************************************
 #                With each new year: Create aggregates from recent item code data ####
 #****************************************************************************************************
-rdfl <- readRDS(paste0(d35, "rdfl.rds"))
+rdfl <- readRDS(paste0(d35, "rdfl.rds"))  # recipe data
 
 df <- readRDS(file=paste0(d35, "finrecent.rds"))
 
@@ -601,8 +644,9 @@ slgfin <- stack %>%
   arrange(stabbr, level, levf, aggvar, ic, year)
 # check the changed vars
 count(slgfin, level, levf)
-count(slgfin, ic)
+count(slgfin, ic)  # T01, T09, T40, and NA
 
 usethis::use_data(slgfin, overwrite = TRUE)
 
-
+# summary(bdata::slgfin)
+# count(bdata::slgfin, ic)

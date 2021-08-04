@@ -31,6 +31,18 @@
 
 usethis::use_package("usmap")
 
+# build package source ----
+devtools::build(
+  pkg = here::here(),
+  path = NULL,
+  binary = FALSE,
+  vignettes = FALSE,
+  manual = FALSE,
+  args = NULL,
+  quiet = FALSE)
+
+# other things ----
+
 
 
 # This block (if uncommented) will update the NAMESPACE file when devtools::document() is run (or via shift-ctrl-d) ####
