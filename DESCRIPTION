@@ -1,13 +1,14 @@
 Package: bdata
 Title: Boyd data
-Version: 0.8
+Version: 0.9
 Authors@R: "Don Boyd <donboyd5@gmail.com> [aut, cre]"
 Description: Data that I use frequently.
 Depends:
     R (>= 3.5)
 License: GPL-2
-LazyData: TRUE
+LazyData: true
+LazyDataCompression: bzip2
 Encoding: UTF-8
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 Imports: 
     usmap

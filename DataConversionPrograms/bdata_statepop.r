@@ -1,6 +1,6 @@
 # bdata_statepop.r
 # Don Boyd
-# 5/3/2020
+# 10/16/2021
 
 # create file with annual state population from 1900 forward
 
@@ -29,7 +29,8 @@
 #****************************************************************************************************
 #                Libraries ####
 #****************************************************************************************************
-library("devtools")
+library(devtools)
+library(usethis)
 
 library(magrittr)
 library(plyr) # needed for ldply; must be loaded BEFORE dplyr
@@ -66,13 +67,24 @@ glimpse(pop_1990_2000)
 pop_2000_2010 <- readRDS(here::here("data_intermediate", "popfiles", "pop_2000_2010.rds"))
 glimpse(pop_2000_2010)
 
-pop_2010plus <- readRDS(here::here("data_intermediate", "popfiles", "pop_2010plus.rds"))
-glimpse(pop_2010plus)
+pop_2010_2020 <- readRDS(here::here("data_intermediate", "popfiles", "pop_2010_2020.rds"))
+glimpse(pop_2010_2020)
 
-tpop <- bind_rows(pop_1900_1990, pop_1990_2000, pop_2000_2010, pop_2010plus)
+tpop <- bind_rows(pop_1900_1990, pop_1990_2000, pop_2000_2010, pop_2010_2020)
 glimpse(tpop)
 count(tpop, type)
 count(tpop, fname)
+count(tpop, year) %>% ht
+count(tpop, stabbr)
+
+tpop %>% 
+  filter(stabbr=="NY", year %in% seq(1960, 2020, 10)) %>%
+  group_by(year, type) %>%
+  summarise(n=n())
+# we have 2 census and 2 intercensal values for 2010
+tpop %>% 
+  filter(stabbr=="NY", year==2010)
+
 
 # note that for 1970 and 1980 we only have census, and that for 1990 we have two census values
 tpop %>% filter(stabbr=="NY", year %in% c(1960, 1970, 1980, 1990)) %>% arrange(year, type)
@@ -111,6 +123,9 @@ upop <- tpop %>%
   select(-fpriority)
 upop
 
+upop %>% filter(stabbr=="NY", year==2010)
+
+
 # note that now we only have 1 census value for 1990 and of course still no intercensal values for 1970 and 1980
 upop %>% filter(stabbr=="NY", year %in% c(1960, 1970, 1980, 1990)) %>% arrange(year, type)
 # are there any years for which we have NO values for a  state (other than AK, HI?)
@@ -143,6 +158,7 @@ stub %>%
 #   allpop all of upop
 #   spop.a a unique set of data -- either intercensal or postcensal
 allpop <- upop
+summary(allpop)
 usethis::use_data(allpop, overwrite=TRUE)
 
 spop.a <- upop %>%
@@ -166,9 +182,48 @@ spop.a %>%
 # looks good
 usethis::use_data(spop.a, overwrite=TRUE)
 
+#..  ----
+# DATA PREPARATION BELOW HERE -----
+#..  ----
+# ONETIME: 2010-2020 djb Oct 2021 ----
+# https://www2.census.gov/programs-surveys/popest/datasets/
+urlbase <- "https://www2.census.gov/programs-surveys/popest/datasets/2010-2020/state/totals/"
+ufn2010 <- "nst-est2020.csv"
+download.file(paste0(urlbase, ufn2010), here::here("data_raw", "popraw", ufn2010), mode="wb")
+
+tpop1 <- read_csv(here::here("data_raw", "popraw", ufn2010), col_names=TRUE)
+
+tpop2 <- tpop1 %>%
+  setNames(str_to_lower(names(.))) %>%
+  select(-popestimate042020) %>%  # I don't think we want this one yet (?) -- April 2020, to compare to Census2020
+  filter(sumlev %in% c("010", "040")) %>%  # US summary, states, DC, PR; drop regions
+  left_join(stcodes %>% select(state=stfips, stabbr), by="state") %>%
+  filter(stabbr != "PR") %>%
+  select(stabbr, state:popestimate2020) # verify states look good
+
+tpop3 <- tpop2 %>%
+  select(-state, -name) %>%
+  pivot_longer(-stabbr) %>%
+  mutate(fname=ufn2010,
+         type=case_when(str_detect(name, "census") ~ "census",
+                        str_detect(name, "base") ~ "base",
+                        str_detect(name, "estimate") &
+                          !str_detect(name, "base")  ~ "intercensal",
+                        TRUE ~ "ERROR"),
+         year=parse_number(name) %>% as.integer)  # works because we got rid of popestimate042020
+count(tpop3, type)
+count(tpop3, year)
+count(tpop3, fname)
+count(tpop3, stabbr)
+
+pop_2010_2020 <- tpop3 %>%
+  select(stabbr, year, value, type, fname)
+summary(pop_2010_2020)
+
+saveRDS(pop_2010_2020, here::here("data_intermediate", "popfiles", "pop_2010_2020.rds"))
 
 
-# ONETIME: 2010+ Get and save most recent file, currently postcensal 2010-2019 ----
+# OLD ONETIME: 2010+ Get and save most recent file, currently postcensal 2010-2019 ----
 # These data are not located where you'd expect -- they're in a national directory.
 # https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/national/totals/nst-est2019-alldata.csv
 ufn2010 <- "nst-est2019-alldata.csv"
@@ -243,8 +298,8 @@ saveRDS(pop_1990_2000, here::here("data_intermediate", "popfiles", "pop_1990_200
 
 #.. 2000-2010 ----
 ufn2000 <- "st-est00int-01.csv"  # Census APPEARS to have updated this 24-Aug-2016
-urlbase <- "https://www2.census.gov/programs-surveys/popest/tables/2000-2010/intercensal/state/"
-download.file(paste0(urlbase, ufn2000), here::here("data_raw", "popraw", ufn2000), mode="wb")
+# urlbase <- "https://www2.census.gov/programs-surveys/popest/tables/2000-2010/intercensal/state/"
+# download.file(paste0(urlbase, ufn2000), here::here("data_raw", "popraw", ufn2000), mode="wb")
 
 tpop <- read_csv(here::here("data_raw", "popraw", ufn2000), col_names=FALSE, skip=3)
 tpop # 14 columns; 50 states, DC, US, PR, regions; Release Date: September 2011 
@@ -400,11 +455,12 @@ get_pop_history <- function(fname){
 
 tmp <- get_pop_history(fnames[2]) %>% count(year)
 
-pop1 <- ldply(fnames, get_pop_history)
+# pop1 <- ldply(fnames, get_pop_history)
+pop1 <- purrr::map_df(fnames, get_pop_history)
 glimpse(pop1)
 summary(pop1)
 count(pop1, type)
-count(pop1, year)
+count(pop1, year)  # note census years
 count(pop1 %>% filter(type=="intercensal"), year)
 count(pop1 %>% filter(type=="census"), year)
 pop1 %>% filter(type=="census", year==1970) %>% arrange(stabbr)
@@ -428,7 +484,7 @@ pop2 %>%
   filter(stabbr=="NY") %>%
   ggplot(aes(year, value)) +
   geom_line()
-
+summary(pop2)
 saveRDS(pop2, here::here("data_intermediate", "popfiles", "pop_1900_1990.rds"))
 
 
